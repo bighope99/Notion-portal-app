@@ -1,0 +1,151 @@
+"use client"
+
+import type React from "react"
+
+import { useState } from "react"
+import { type Submission, addSubmission } from "@/lib/notion"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { PlusCircle, ExternalLink } from "lucide-react"
+import { format } from "date-fns"
+import { ja } from "date-fns/locale"
+import { useToast } from "@/hooks/use-toast"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+
+interface SubmissionListProps {
+  submissions: Submission[]
+  personalPage: string
+}
+
+export default function SubmissionList({ submissions: initialSubmissions, personalPage }: SubmissionListProps) {
+  const [submissions, setSubmissions] = useState<Submission[]>(initialSubmissions)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [title, setTitle] = useState("")
+  const [url, setUrl] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const { toast } = useToast()
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+
+    try {
+      const success = await addSubmission(personalPage, title, url)
+
+      if (success) {
+        const newSubmission: Submission = {
+          id: Date.now().toString(), // 一時的なID
+          name: title,
+          personalPage,
+          url,
+          submittedAt: new Date().toISOString(),
+        }
+
+        setSubmissions([newSubmission, ...submissions])
+        setTitle("")
+        setUrl("")
+        setIsDialogOpen(false)
+
+        toast({
+          title: "提出完了",
+          description: "課題が提出されました",
+        })
+      } else {
+        throw new Error("Failed to add submission")
+      }
+    } catch (error) {
+      toast({
+        title: "エラー",
+        description: "課題の提出に失敗しました",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <div>
+      <div className="flex justify-end mb-4">
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              課題を提出
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>課題の提出</DialogTitle>
+              <DialogDescription>課題のタイトルとURLを入力してください</DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSubmit}>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="title">タイトル</Label>
+                  <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} required />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="url">URL</Label>
+                  <Input
+                    id="url"
+                    type="url"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    placeholder="https://"
+                    required
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? "提出中..." : "提出する"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {submissions.length === 0 ? (
+        <div className="text-center py-8 text-gray-500">提出された課題はありません</div>
+      ) : (
+        <div className="space-y-4">
+          {submissions.map((submission) => (
+            <div
+              key={submission.id}
+              className="flex items-start justify-between p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+            >
+              <div>
+                <h3 className="font-medium">{submission.name}</h3>
+                {submission.submittedAt && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    提出日: {format(new Date(submission.submittedAt), "yyyy年MM月dd日", { locale: ja })}
+                  </p>
+                )}
+              </div>
+              <a
+                href={submission.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-800 flex items-center"
+              >
+                <ExternalLink className="h-4 w-4 mr-1" />
+                開く
+              </a>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}

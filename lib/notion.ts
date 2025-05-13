@@ -8,10 +8,10 @@ const notion = new Client({
 })
 
 // データベースID
-const STUDENTS_DB_ID = "1c7092aab01480508483e8625bd946f2"
-const TASKS_DB_ID = "1c6092aab0148006a92df5f762ed0bf4"
-const SUBMISSIONS_DB_ID = "1d2092aab01480be9ec3e77f584d4418"
-const SCHEDULES_DB_ID = "1c6092aab0148032be11c46e90baea16"
+const STUDENTS_DB_ID = "1ed2676ffda281c8a29dcca751cc0bc2"
+const TASKS_DB_ID = "1ed2676ffda281c0aebdd93cc2d33c39"
+const SUBMISSIONS_DB_ID = "1ed2676ffda2816a9588cb6b74f1f4cc"
+const SCHEDULES_DB_ID = "1ed2676ffda28146919ecb4184d9405d"
 
 // 学生情報の型定義
 export interface Student {

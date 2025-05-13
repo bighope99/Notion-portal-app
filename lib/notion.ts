@@ -21,6 +21,7 @@ export interface Student {
   personalPage: string
   progress: string
   lastViewedAt: string | null
+  passwordHash?: string | null
   isRetired?: boolean // 退会フラグ（存在しない場合は使用しない）
 }
 
@@ -120,6 +121,7 @@ export async function getStudentByEmail(email: string): Promise<Student | null> 
       personalPage: getPropertyValue(properties, "個人ページ", "rich_text"),
       progress: getPropertyValue(properties, "進捗", "rich_text"),
       lastViewedAt: getPropertyValue(properties, "最終閲覧時間", "date"),
+      passwordHash: getPropertyValue(properties, "パスワード", "rich_text"),
       // isRetiredプロパティが存在する場合のみ使用
       ...(properties["退会"] ? { isRetired: getPropertyValue(properties, "退会", "checkbox") } : {}),
     }
@@ -149,6 +151,42 @@ export async function updateLastViewedAt(studentId: string): Promise<boolean> {
   } catch (error) {
     console.error("Failed to update last viewed at:", error)
     return false
+  }
+}
+
+// パスワードハッシュを保存
+export async function savePasswordHash(studentId: string, passwordHash: string): Promise<boolean> {
+  try {
+    await notion.pages.update({
+      page_id: studentId,
+      properties: {
+        パスワード: {
+          rich_text: [
+            {
+              text: {
+                content: passwordHash,
+              },
+            },
+          ],
+        },
+      },
+    })
+    return true
+  } catch (error) {
+    console.error("Failed to save password hash:", error)
+    return false
+  }
+}
+
+// メールアドレスからパスワードハッシュを取得
+export async function getPasswordHashByEmail(email: string): Promise<string | null> {
+  try {
+    const student = await getStudentByEmail(email)
+    if (!student) return null
+    return student.passwordHash || null
+  } catch (error) {
+    console.error("Failed to get password hash:", error)
+    return null
   }
 }
 

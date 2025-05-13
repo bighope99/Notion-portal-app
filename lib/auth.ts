@@ -2,47 +2,75 @@
 
 import { cookies } from "next/headers"
 import { getStudentByEmail } from "./notion"
-import { createHmac, randomBytes } from "crypto"
+import { createHash } from "crypto"
+import { generateToken, verifyToken } from "./token"
+import { sendEmail } from "./email"
+import { savePasswordHash, getPasswordHashByEmail } from "./notion"
 
 // 秘密鍵
-const SECRET_KEY = process.env.MAGIC_SECRET_KEY || "default-secret-key"
+const SECRET_KEY = process.env.SECRET_KEY || "default-secret-key"
 
-// トークンの生成
-export async function generateToken(email: string): Promise<string> {
-  const timestamp = Date.now()
-  const randomString = randomBytes(16).toString("hex")
-  const hmac = createHmac("sha256", SECRET_KEY)
-  hmac.update(`${email}:${timestamp}:${randomString}`)
-  const signature = hmac.digest("hex")
-  return Buffer.from(`${email}:${timestamp}:${randomString}:${signature}`).toString("base64")
+// パスワードのハッシュ化
+// SECRET_KEYをソルトとして使用し、SHA-256アルゴリズムでハッシュ化
+export async function hashPassword(password: string): Promise<string> {
+  // パスワードとSECRET_KEYを組み合わせてハッシュ化することで、
+  // 同じパスワードでも異なるSECRET_KEYを使用すれば異なるハッシュ値になる
+  // これにより、レインボーテーブル攻撃などに対する耐性が高まる
+  return createHash("sha256").update(`${password}${SECRET_KEY}`).digest("hex")
 }
 
-// トークンの検証
-export async function verifyToken(token: string): Promise<{ email: string } | null> {
+// パスワードの検証
+export async function verifyPassword(email: string, password: string): Promise<boolean> {
+  const storedHash = await getPasswordHashByEmail(email)
+  if (!storedHash) return false
+
+  const inputHash = await hashPassword(password)
+  return storedHash === inputHash
+}
+
+// パスワードの設定
+export async function setupPassword(userId: string, password: string): Promise<boolean> {
+  const passwordHash = await hashPassword(password)
+  return await savePasswordHash(userId, passwordHash)
+}
+
+// パスワードログイン
+export async function loginWithPassword(email: string, password: string) {
   try {
-    const decoded = Buffer.from(token, "base64").toString()
-    const [email, timestamp, randomString, signature] = decoded.split(":")
+    // Notionから学生情報を取得
+    const student = await getStudentByEmail(email)
 
-    // 有効期限チェック (24時間)
-    const now = Date.now()
-    const tokenTime = Number.parseInt(timestamp)
-    if (now - tokenTime > 24 * 60 * 60 * 1000) {
-      return null
+    if (!student) {
+      console.log(`User not found: ${email}`)
+      return { success: false, error: "user_not_found" }
     }
 
-    // 署名の検証
-    const hmac = createHmac("sha256", SECRET_KEY)
-    hmac.update(`${email}:${timestamp}:${randomString}`)
-    const expectedSignature = hmac.digest("hex")
-
-    if (signature !== expectedSignature) {
-      return null
+    if (student.isRetired) {
+      console.log(`Retired user: ${email}`)
+      return { success: false, error: "user_retired" }
     }
 
-    return { email }
+    // パスワードの検証
+    const isPasswordValid = await verifyPassword(email, password)
+    if (!isPasswordValid) {
+      console.log(`Invalid password for: ${email}`)
+      return { success: false, error: "invalid_password" }
+    }
+
+    // セッションの保存
+    const token = await generateToken(email)
+    const cookieStore = cookies()
+    cookieStore.set("auth_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 24 * 7, // 1週間
+      path: "/",
+    })
+
+    return { success: true }
   } catch (error) {
-    console.error("Token verification error:", error)
-    return null
+    console.error("Password login error:", error)
+    return { success: false, error: "server_error" }
   }
 }
 
@@ -62,18 +90,39 @@ export async function login(email: string) {
       return { success: false, error: "user_retired" }
     }
 
+    // パスワードが設定されているかどうかを確認
+    const hasPassword = !!student.passwordHash
+
     // マジックリンク用のトークンを生成
     const token = await generateToken(email)
 
     // マジックリンクのURLを生成
-    const loginUrl = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/auth/callback?token=${encodeURIComponent(token)}`
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+    const loginUrl = `${appUrl}/api/auth/callback?token=${encodeURIComponent(token)}`
 
     console.log("Magic Link:", loginUrl) // 開発用。実際のアプリではメールで送信
 
-    // ここに実際のメール送信ロジックを実装
-    // 例: await sendEmail(email, "ログインリンク", `ログインするには<a href="${loginUrl}">こちら</a>をクリックしてください。`);
+    // メール送信（GASを使用）
+    try {
+      const emailResult = await sendEmail(
+        email,
+        "学習ポータルへのログインリンク",
+        `<p>学習ポータルにログインするには、以下のリンクをクリックしてください：</p>
+        <p><a href="${loginUrl}">ログインする</a></p>
+        <p>このリンクの有効期限は24時間です。</p>`,
+      )
 
-    return { success: true }
+      if (emailResult.mock) {
+        console.log("Email sending mocked in development environment")
+      } else if (emailResult.error) {
+        console.warn("Email sending had errors but continuing login process:", emailResult.error)
+      }
+    } catch (emailError) {
+      console.error("Email sending error:", emailError)
+      // メール送信に失敗しても処理は続行（ログには出力）
+    }
+
+    return { success: true, hasPassword }
   } catch (error) {
     console.error("Login error:", error)
     return { success: false, error: "server_error" }
@@ -163,7 +212,10 @@ export async function handleCallback(token: string) {
       path: "/",
     })
 
-    return { success: true }
+    // パスワードが設定されているかどうかを確認
+    const hasPassword = !!student.passwordHash
+
+    return { success: true, hasPassword, userId: student.id }
   } catch (error) {
     console.error("Callback error:", error)
     return { success: false, error: "Authentication failed" }

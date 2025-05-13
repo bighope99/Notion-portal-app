@@ -13,6 +13,10 @@ export async function GET(request: Request) {
     const result = await handleCallback(token)
 
     if (result.success) {
+      // パスワードが設定されていない場合は、パスワード設定ページにリダイレクト
+      if (!result.hasPassword) {
+        return NextResponse.redirect(new URL("/dashboard/setup-password", request.url))
+      }
       return NextResponse.redirect(new URL("/dashboard", request.url))
     } else {
       return NextResponse.redirect(new URL("/login", request.url))

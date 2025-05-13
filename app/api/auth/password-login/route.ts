@@ -1,20 +1,20 @@
 import { NextResponse } from "next/server"
-import { login } from "@/lib/auth"
+import { loginWithPassword } from "@/lib/auth"
 
 export async function POST(request: Request) {
   try {
     // リクエストボディの解析
     const body = await request.json().catch(() => ({}))
-    const { email } = body
+    const { email, password } = body
 
-    if (!email) {
-      return NextResponse.json({ success: false, error: "Email is required" }, { status: 400 })
+    if (!email || !password) {
+      return NextResponse.json({ success: false, error: "Email and password are required" }, { status: 400 })
     }
 
-    const result = await login(email)
+    const result = await loginWithPassword(email, password)
     return NextResponse.json(result)
   } catch (error) {
-    console.error("Login API error:", error)
+    console.error("Password login API error:", error)
     return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 })
   }
 }

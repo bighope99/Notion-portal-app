@@ -65,10 +65,13 @@ export async function login(email: string) {
     // マジックリンク用のトークンを生成
     const token = await generateToken(email)
 
-    // 実際のアプリケーションでは、ここでメール送信処理を実装
-    // 今回はコンソールに出力するだけ
+    // マジックリンクのURLを生成
     const loginUrl = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/auth/callback?token=${encodeURIComponent(token)}`
-    console.log("Magic Link:", loginUrl)
+
+    console.log("Magic Link:", loginUrl) // 開発用。実際のアプリではメールで送信
+
+    // ここに実際のメール送信ロジックを実装
+    // 例: await sendEmail(email, "ログインリンク", `ログインするには<a href="${loginUrl}">こちら</a>をクリックしてください。`);
 
     return { success: true }
   } catch (error) {

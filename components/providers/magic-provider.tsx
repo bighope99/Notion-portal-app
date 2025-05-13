@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
-import { isLoggedIn } from "@/lib/magic-client"
+import { checkLoginStatus } from "@/lib/magic-client"
 
 export default function MagicProvider({
   children,
@@ -24,7 +24,7 @@ export default function MagicProvider({
 
     const checkAuth = async () => {
       try {
-        const loggedIn = await isLoggedIn()
+        const loggedIn = await checkLoginStatus()
 
         // ログイン状態とURLの整合性をチェック
         if (!loggedIn && pathname?.startsWith("/dashboard")) {

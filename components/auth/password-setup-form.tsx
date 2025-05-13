@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { AlertCircle, CheckCircle } from "lucide-react"
+import { AlertCircle, CheckCircle, Lock } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
 export default function PasswordSetupForm() {
@@ -73,8 +73,13 @@ export default function PasswordSetupForm() {
   return (
     <Card className="shadow-lg">
       <CardHeader>
-        <CardTitle>パスワードの設定</CardTitle>
-        <CardDescription>次回からパスワードでログインできるようにします</CardDescription>
+        <div className="flex justify-center mb-4">
+          <div className="rounded-full bg-blue-100 p-3">
+            <Lock className="h-6 w-6 text-blue-600" />
+          </div>
+        </div>
+        <CardTitle className="text-center">パスワードの設定</CardTitle>
+        <CardDescription className="text-center">次回からパスワードでログインできるようにします</CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent>

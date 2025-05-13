@@ -75,7 +75,7 @@ export async function loginWithPassword(email: string, password: string) {
 }
 
 // ログイン処理
-export async function login(email: string) {
+export async function login(email: string, isReset = false) {
   try {
     // Notionから学生情報を取得
     const student = await getStudentByEmail(email)
@@ -98,19 +98,24 @@ export async function login(email: string) {
 
     // マジックリンクのURLを生成
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
-    const loginUrl = `${appUrl}/api/auth/callback?token=${encodeURIComponent(token)}`
+    // パスワードリセットの場合は、reset=trueパラメータを追加
+    const resetParam = isReset ? "&reset=true" : ""
+    const loginUrl = `${appUrl}/api/auth/callback?token=${encodeURIComponent(token)}${resetParam}`
 
     console.log("Magic Link:", loginUrl) // 開発用。実際のアプリではメールで送信
 
     // メール送信（GASを使用）
     try {
-      const emailResult = await sendEmail(
-        email,
-        "学習ポータルへのログインリンク",
-        `<p>学習ポータルにログインするには、以下のリンクをクリックしてください：</p>
-        <p><a href="${loginUrl}">ログインする</a></p>
-        <p>このリンクの有効期限は24時間です。</p>`,
-      )
+      const subject = isReset ? "パスワードリセットリンク" : "学習ポータルへのログインリンク"
+      const content = isReset
+        ? `<p>パスワードをリセットするには、以下のリンクをクリックしてください：</p>
+           <p><a href="${loginUrl}">パスワードをリセットする</a></p>
+           <p>このリンクの有効期限は24時間です。</p>`
+        : `<p>学習ポータルにログインするには、以下のリンクをクリックしてください：</p>
+           <p><a href="${loginUrl}">ログインする</a></p>
+           <p>このリンクの有効期限は24時間です。</p>`
+
+      const emailResult = await sendEmail(email, subject, content)
 
       if (emailResult.mock) {
         console.log("Email sending mocked in development environment")

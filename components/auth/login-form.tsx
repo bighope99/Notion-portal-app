@@ -96,6 +96,46 @@ export default function LoginForm() {
     }
   }
 
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setError("パスワードをリセットするには、メールアドレスを入力してください")
+      return
+    }
+
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const response = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`サーバーエラー: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if (data.success) {
+        // パスワードリセットメール送信成功時はチェックメールページにリダイレクト
+        router.push("/login/check-email")
+      } else {
+        throw new Error(
+          data.error === "user_not_found" ? "登録されていないメールアドレスです" : "パスワードリセットに失敗しました",
+        )
+      }
+    } catch (err: any) {
+      console.error("Forgot password error:", err)
+      setError(err.message || "パスワードリセットに失敗しました。メールアドレスを確認してください。")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <Card className="shadow-lg">
       <CardHeader>
@@ -138,6 +178,15 @@ export default function LoginForm() {
                   required
                   className="w-full"
                 />
+                <div className="text-right">
+                  <button
+                    type="button"
+                    onClick={handleForgotPassword}
+                    className="text-xs text-blue-600 hover:text-blue-800"
+                  >
+                    パスワードをお忘れの方はこちら
+                  </button>
+                </div>
               </div>
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? "ログイン中..." : "ログイン"}

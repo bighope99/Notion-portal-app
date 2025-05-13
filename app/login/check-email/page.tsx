@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Mail, Terminal } from "lucide-react"
+import { Mail } from "lucide-react"
 
 export default function CheckEmailPage() {
   return (
@@ -18,18 +18,6 @@ export default function CheckEmailPage() {
           <p className="text-sm text-gray-600 mb-4">
             メールに記載されているリンクをクリックしてログインを完了してください。 リンクの有効期限は15分です。
           </p>
-
-          {process.env.NODE_ENV !== "production" && (
-            <div className="mt-4 p-3 bg-gray-100 rounded-md text-left">
-              <div className="flex items-center mb-2">
-                <Terminal className="h-4 w-4 mr-2 text-gray-500" />
-                <span className="text-xs font-medium text-gray-700">開発環境情報</span>
-              </div>
-              <p className="text-xs text-gray-600">
-                開発環境では、実際にメールは送信されません。コンソールログでマジックリンクを確認してください。
-              </p>
-            </div>
-          )}
         </CardContent>
       </Card>
     </div>

@@ -14,9 +14,6 @@ export default async function TaskPage() {
   const studentId = session.user.id
   const personalPageId = session.user.personalPageId || ""
 
-  // personalPageIdの値をログに出力（デバッグ用）
-  console.log(`Dashboard Task: personalPageId = "${personalPageId}"`)
-
   // 最終閲覧時間を更新
   await updateLastViewedAt(studentId)
 

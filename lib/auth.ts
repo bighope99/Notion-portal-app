@@ -41,19 +41,16 @@ export async function loginWithPassword(email: string, password: string) {
     const student = await getStudentByEmail(email)
 
     if (!student) {
-      console.log(`User not found: ${email}`)
       return { success: false, error: "user_not_found" }
     }
 
     if (student.isRetired) {
-      console.log(`Retired user: ${email}`)
       return { success: false, error: "user_retired" }
     }
 
     // パスワードの検証
     const isPasswordValid = await verifyPassword(email, password)
     if (!isPasswordValid) {
-      console.log(`Invalid password for: ${email}`)
       return { success: false, error: "invalid_password" }
     }
 
@@ -81,12 +78,10 @@ export async function login(email: string, isReset = false) {
     const student = await getStudentByEmail(email)
 
     if (!student) {
-      console.log(`User not found: ${email}`)
       return { success: false, error: "user_not_found" }
     }
 
     if (student.isRetired) {
-      console.log(`Retired user: ${email}`)
       return { success: false, error: "user_retired" }
     }
 
@@ -102,8 +97,6 @@ export async function login(email: string, isReset = false) {
     const resetParam = isReset ? "&reset=true" : ""
     const loginUrl = `${appUrl}/api/auth/callback?token=${encodeURIComponent(token)}${resetParam}`
 
-    console.log("Magic Link:", loginUrl) // 開発用。実際のアプリではメールで送信
-
     // メール送信（GASを使用）
     try {
       const subject = isReset ? "パスワードリセットリンク" : "学習ポータルへのログインリンク"
@@ -118,7 +111,6 @@ export async function login(email: string, isReset = false) {
       const emailResult = await sendEmail(email, subject, content)
 
       if (emailResult.mock) {
-        console.log("Email sending mocked in development environment")
       } else if (emailResult.error) {
         console.warn("Email sending had errors but continuing login process:", emailResult.error)
       }
@@ -155,17 +147,14 @@ export async function getSession() {
     const student = await getStudentByEmail(payload.email)
 
     if (!student) {
-      console.log(`Session validation failed: User not found for email ${payload.email}`)
       return null
     }
 
     if (student.isRetired) {
-      console.log(`Session validation failed: User is retired: ${payload.email}`)
       return null
     }
 
     // personalPageIdの値をログに出力（デバッグ用）
-    console.log(`Session: personalPageId = "${student.personalPageId}"`)
 
     return {
       user: {
@@ -203,12 +192,10 @@ export async function handleCallback(token: string) {
     const student = await getStudentByEmail(payload.email)
 
     if (!student) {
-      console.log(`Callback validation failed: User not found for email ${payload.email}`)
       return { success: false, error: "User not found" }
     }
 
     if (student.isRetired) {
-      console.log(`Callback validation failed: User is retired: ${payload.email}`)
       return { success: false, error: "User is retired" }
     }
 

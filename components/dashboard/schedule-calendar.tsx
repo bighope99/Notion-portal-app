@@ -1,12 +1,25 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useMemo } from "react"
 import type { Schedule, DateRange } from "@/lib/notion"
-import { Calendar } from "@/components/ui/calendar"
 import { ja } from "date-fns/locale"
-import { format, isSameDay, parseISO } from "date-fns"
+import {
+  format,
+  isSameDay,
+  parseISO,
+  startOfMonth,
+  endOfMonth,
+  eachDayOfInterval,
+  isSameMonth,
+  addMonths,
+  subMonths,
+  getDay,
+  startOfWeek,
+  endOfWeek,
+  isToday,
+} from "date-fns"
 import { Button } from "@/components/ui/button"
-import { CalendarIcon, X, ExternalLink, User, Tag, Clock } from "lucide-react"
+import { CalendarIcon, X, ExternalLink, User, Tag, Clock, ChevronLeft, ChevronRight } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -52,39 +65,59 @@ function formatTimeRange(dateRange: DateRange): string {
   }
 }
 
+// 日付から時間部分のみを抽出する関数
+function formatTime(dateString: string): string {
+  if (!dateString) return ""
+
+  try {
+    const date = parseISO(dateString)
+    return format(date, "HH:mm")
+  } catch (error) {
+    console.error("Error formatting time:", error)
+    return ""
+  }
+}
+
 export default function ScheduleCalendar({ schedules }: ScheduleCalendarProps) {
+  const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [isDesktop, setIsDesktop] = useState(false)
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null)
   const [isReservationDialogOpen, setIsReservationDialogOpen] = useState(false)
   const [isReserving, setIsReserving] = useState(false)
   const { toast } = useToast()
 
-  // デバッグ用：スケジュールデータをコンソールに表示
-  useEffect(() => {
-    console.log("Schedule data in calendar component:", schedules)
-    // 各予定の講義テーマと時間範囲をコンソールに表示
-    schedules.forEach((schedule) => {
-      console.log(`Schedule "${schedule.name}":`)
-      console.log(`- Theme: ${schedule.theme || "未設定"}`)
-      console.log(`- Date Range: ${JSON.stringify(schedule.dateRange)}`)
-      console.log(`- Time: ${formatTimeRange(schedule.dateRange)}`)
-      console.log(`- Is Personal Consultation: ${schedule.isPersonalConsultation}`)
-      console.log(`- Is Reserved: ${schedule.isReserved}`)
-    })
-  }, [schedules])
+  // 曜日の配列（日曜日から始まる）
+  const weekDays = ["日", "月", "火", "水", "木", "金", "土"]
 
-  // 画面サイズを監視してデスクトップかどうかを判定
-  useEffect(() => {
-    const checkIfDesktop = () => {
-      setIsDesktop(window.innerWidth >= 768) // 768px以上をデスクトップとみなす
-    }
+  // 現在の月のカレンダーグリッドを計算
+  const calendarDays = useMemo(() => {
+    // 月の最初と最後の日を取得
+    const monthStart = startOfMonth(currentMonth)
+    const monthEnd = endOfMonth(currentMonth)
 
-    checkIfDesktop()
-    window.addEventListener("resize", checkIfDesktop)
-    return () => window.removeEventListener("resize", checkIfDesktop)
-  }, [])
+    // 週の最初（日曜日）と最後（土曜日）を取得して、カレンダーグリッドを作成
+    const startDate = startOfWeek(monthStart)
+    const endDate = endOfWeek(monthEnd)
+
+    // 日付の範囲を配列として取得
+    return eachDayOfInterval({ start: startDate, end: endDate })
+  }, [currentMonth])
+
+  // 前月へ移動
+  const prevMonth = () => {
+    setCurrentMonth(subMonths(currentMonth, 1))
+  }
+
+  // 翌月へ移動
+  const nextMonth = () => {
+    setCurrentMonth(addMonths(currentMonth, 1))
+  }
+
+  // 今月へ移動
+  const goToToday = () => {
+    setCurrentMonth(new Date())
+  }
 
   // 選択された日付のスケジュールを取得
   const getSchedulesForDate = (date: Date) => {
@@ -106,9 +139,9 @@ export default function ScheduleCalendar({ schedules }: ScheduleCalendarProps) {
   }
 
   // 日付がクリックされたときの処理
-  const handleDateClick = (date: Date | undefined) => {
-    if (date && hasScheduleOnDate(date)) {
-      setSelectedDate(date)
+  const handleDateClick = (date: Date) => {
+    setSelectedDate(date)
+    if (hasScheduleOnDate(date)) {
       setIsDialogOpen(true)
     }
   }
@@ -122,6 +155,17 @@ export default function ScheduleCalendar({ schedules }: ScheduleCalendarProps) {
   // 予約を確定する処理
   const confirmReservation = async () => {
     if (!selectedSchedule) return
+
+    // すでに予約済みかチェック
+    if (selectedSchedule.reservationName) {
+      toast({
+        title: "予約エラー",
+        description: "この予定はすでに予約されています",
+        variant: "destructive",
+      })
+      setIsReservationDialogOpen(false)
+      return
+    }
 
     setIsReserving(true)
 
@@ -172,46 +216,79 @@ export default function ScheduleCalendar({ schedules }: ScheduleCalendarProps) {
   }
 
   return (
-    <div>
-      <Calendar
-        mode="single"
-        selected={selectedDate}
-        onSelect={handleDateClick}
-        locale={ja}
-        className={`rounded-md border ${isDesktop ? "h-[600px] max-w-full" : ""}`}
-        modifiers={{
-          hasSchedule: (date) => hasScheduleOnDate(date),
-        }}
-        modifiersStyles={{
-          hasSchedule: { backgroundColor: "#e0f2fe", fontWeight: "bold" },
-        }}
-        components={{
-          DayContent: (props) => {
-            const schedulesForDate = getSchedulesForDate(props.date)
-            const hasSchedule = schedulesForDate.length > 0
+    <div className="calendar-container">
+      {/* カレンダーヘッダー */}
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-lg font-semibold">{format(currentMonth, "yyyy年M月", { locale: ja })}</h2>
+        <div className="flex space-x-2">
+          <Button variant="outline" size="sm" onClick={prevMonth}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="sm" onClick={goToToday}>
+            今日
+          </Button>
+          <Button variant="outline" size="sm" onClick={nextMonth}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
 
-            return (
-              <div className="relative w-full h-full flex flex-col items-center justify-center">
-                <div>{props.date.getDate()}</div>
-                {hasSchedule && isDesktop && (
-                  <div className="absolute top-full left-0 w-full">
-                    <div className="text-xs text-center mt-1 max-w-full px-1">
-                      {schedulesForDate.map((s, index) => (
-                        <div key={index} className="truncate mb-1 bg-blue-50 p-1 rounded">
-                          {s.name}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {hasSchedule && !isDesktop && (
-                  <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-blue-500 rounded-full" />
-                )}
+      {/* カレンダーグリッド */}
+      <div className="grid grid-cols-7 border rounded-lg overflow-hidden bg-white">
+        {/* 曜日ヘッダー */}
+        {weekDays.map((day, index) => (
+          <div
+            key={index}
+            className={`p-2 text-center font-medium border-b ${
+              index === 0 ? "text-red-500" : index === 6 ? "text-blue-500" : ""
+            }`}
+          >
+            {day}
+          </div>
+        ))}
+
+        {/* 日付グリッド */}
+        {calendarDays.map((day, index) => {
+          const daySchedules = getSchedulesForDate(day)
+          const isCurrentMonth = isSameMonth(day, currentMonth)
+          const isSelectedDay = selectedDate && isSameDay(day, selectedDate)
+          const isTodayDate = isToday(day)
+
+          return (
+            <div
+              key={index}
+              className={`min-h-[100px] border p-1 relative ${
+                !isCurrentMonth ? "bg-gray-50 text-gray-400" : ""
+              } ${isSelectedDay ? "bg-blue-50" : ""} ${isTodayDate ? "border-blue-500 border-2" : ""}`}
+              onClick={() => handleDateClick(day)}
+            >
+              {/* 日付表示 */}
+              <div
+                className={`text-right text-sm mb-1 ${
+                  getDay(day) === 0 ? "text-red-500" : getDay(day) === 6 ? "text-blue-500" : ""
+                } ${!isCurrentMonth ? "text-gray-400" : ""}`}
+              >
+                {format(day, "d")}
               </div>
-            )
-          },
-        }}
-      />
+
+              {/* イベント表示 */}
+              <div className="overflow-y-auto max-h-[80px]">
+                {daySchedules.map((schedule, idx) => (
+                  <div
+                    key={idx}
+                    className={`text-xs mb-1 p-1 rounded truncate ${
+                      schedule.isPersonalConsultation ? "bg-purple-100 text-purple-800" : "bg-blue-100 text-blue-800"
+                    }`}
+                    title={schedule.name}
+                  >
+                    {schedule.dateRange?.start && formatTime(schedule.dateRange.start)} {schedule.name}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )
+        })}
+      </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-md">
@@ -297,19 +374,21 @@ export default function ScheduleCalendar({ schedules }: ScheduleCalendarProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>個人コンサルテーションの予約</AlertDialogTitle>
             <AlertDialogDescription>
-              {selectedSchedule && (
+              {selectedSchedule && selectedSchedule.reservationName ? (
+                <div className="text-red-500">この予定はすでに予約されています。別の日時を選択してください。</div>
+              ) : (
                 <>
-                  <p className="mb-2">以下の個人コンサルテーションを予約しますか？</p>
+                  <div className="mb-2">以下の個人コンサルテーションを予約しますか？</div>
                   <div className="bg-gray-50 p-3 rounded-md">
-                    <p>
+                    <div>
                       <strong>日時:</strong>{" "}
-                      {selectedSchedule.dateRange?.start &&
+                      {selectedSchedule?.dateRange?.start &&
                         format(parseISO(selectedSchedule.dateRange.start), "yyyy年MM月dd日", { locale: ja })}{" "}
-                      {formatTimeRange(selectedSchedule.dateRange)}
-                    </p>
-                    <p>
-                      <strong>講師:</strong> {selectedSchedule.instructor || "未設定"}
-                    </p>
+                      {selectedSchedule && formatTimeRange(selectedSchedule.dateRange)}
+                    </div>
+                    <div>
+                      <strong>講師:</strong> {selectedSchedule?.instructor || "未設定"}
+                    </div>
                   </div>
                 </>
               )}
@@ -317,9 +396,11 @@ export default function ScheduleCalendar({ schedules }: ScheduleCalendarProps) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isReserving}>キャンセル</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmReservation} disabled={isReserving}>
-              {isReserving ? "予約中..." : "予約する"}
-            </AlertDialogAction>
+            {selectedSchedule && !selectedSchedule.reservationName && (
+              <AlertDialogAction onClick={confirmReservation} disabled={isReserving}>
+                {isReserving ? "予約中..." : "予約する"}
+              </AlertDialogAction>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

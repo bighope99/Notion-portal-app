@@ -93,6 +93,8 @@ function getPropertyValue(properties: any, propertyName: string, type: string): 
         }
       case "select":
         return property.select?.name || null
+      case "multi_select":
+        return property.multi_select?.map((item: any) => item.name) || null
       case "url":
         return property.url || null
       case "relation":
@@ -113,8 +115,6 @@ function getPropertyValue(properties: any, propertyName: string, type: string): 
 // メールアドレスから学生情報を取得
 export async function getStudentByEmail(email: string): Promise<Student | null> {
   try {
-    console.log(`Fetching student with email: ${email}`)
-
     const response = await notion.databases.query({
       database_id: STUDENTS_DB_ID,
       filter: {
@@ -125,10 +125,7 @@ export async function getStudentByEmail(email: string): Promise<Student | null> 
       },
     })
 
-    console.log(`Query response: ${JSON.stringify(response, null, 2)}`)
-
     if (response.results.length === 0) {
-      console.log("No student found with this email")
       return null
     }
 
@@ -136,11 +133,11 @@ export async function getStudentByEmail(email: string): Promise<Student | null> 
     const properties = page.properties as any
 
     // デバッグ用にプロパティ名を出力
-    console.log("Available properties:", Object.keys(properties))
+    // console.log("Available properties:", Object.keys(properties))
 
     // 個人ページのリレーションIDを取得
     const personalPageRelation = getPropertyValue(properties, "個人ページ", "relation")
-    console.log(`Personal page relation ID: ${personalPageRelation}`)
+    // console.log(`Personal page relation ID: ${personalPageRelation}`)
 
     // 安全にプロパティを取得
     const student: Student = {
@@ -156,7 +153,6 @@ export async function getStudentByEmail(email: string): Promise<Student | null> 
       ...(properties["退会"] ? { isRetired: getPropertyValue(properties, "退会", "checkbox") } : {}),
     }
 
-    console.log("Parsed student:", student)
     return student
   } catch (error) {
     console.error("Failed to fetch student:", error)
@@ -225,11 +221,8 @@ export async function getTasksByStudentId(studentId: string): Promise<Task[]> {
   try {
     // studentIdが空の場合は空の配列を返す
     if (!studentId) {
-      console.log("studentId is empty, returning empty tasks array")
       return []
     }
-
-    console.log(`Fetching tasks for studentId: ${studentId}`)
 
     const response = await notion.databases.query({
       database_id: TASKS_DB_ID,
@@ -281,11 +274,8 @@ export async function getSubmissionsByStudentId(studentId: string): Promise<Subm
   try {
     // studentIdが空の場合は空の配列を返す
     if (!studentId) {
-      console.log("studentId is empty, returning empty submissions array")
       return []
     }
-
-    console.log(`Fetching submissions for studentId: ${studentId}`)
 
     const response = await notion.databases.query({
       database_id: SUBMISSIONS_DB_ID,
@@ -381,16 +371,13 @@ export async function getSchedules(): Promise<{
       ],
     })
 
-    // デバッグ用：取得したデータをそのままコンソールに出力
-    console.log("Raw schedule data from Notion:", JSON.stringify(response.results, null, 2))
-
     const schedules = response.results.map((page) => {
       const properties = page.properties as any
       const name = getPropertyValue(properties, "名前", "title")
-      const theme = getPropertyValue(properties, "講義テーマ", "select")
+      const theme = getPropertyValue(properties, "講義テーマ", "multi_select")
 
       // 講義テーマが"個人コンサル"かどうかで判定
-      const isPersonalConsultation = theme === "個人コンサル"
+      const isPersonalConsultation = theme.includes("個人コンサル")
 
       // 日付範囲（開始時間と終了時間）を取得
       const dateRange = getPropertyValue(properties, "実施日", "date_range")
@@ -399,12 +386,6 @@ export async function getSchedules(): Promise<{
       const reservationName = getPropertyValue(properties, "予約名前", "rich_text")
       const reservationEmail = getPropertyValue(properties, "予約メアド", "rich_text")
       const isReserved = !!(reservationName && reservationEmail)
-
-      // デバッグ用：各予定の生のプロパティデータをコンソールに出力
-      console.log(`Schedule "${name}" properties:`, properties)
-      console.log(`Schedule "${name}" date range:`, dateRange)
-      console.log(`Schedule "${name}" theme:`, theme)
-      console.log(`Schedule "${name}" reservation:`, { reservationName, reservationEmail, isReserved })
 
       return {
         id: page.id,
@@ -420,12 +401,8 @@ export async function getSchedules(): Promise<{
         reservationName,
         reservationEmail,
         isReserved,
-        rawProperties: properties, // デバッグ用：生のプロパティデータ
       }
     })
-
-    // デバッグ用：パース後のデータをコンソールに出力
-    console.log("Parsed schedule data:", schedules)
 
     // 予定を分類
     const regularSchedules = schedules.filter((schedule) => !schedule.isArchive && !schedule.isPersonalConsultation)
@@ -452,6 +429,66 @@ export async function getSchedules(): Promise<{
   }
 }
 
+// ユーザーが予約済みの予定を取得
+export async function getUserReservedSchedules(userEmail: string): Promise<Schedule[]> {
+  try {
+    const response = await notion.databases.query({
+      database_id: SCHEDULES_DB_ID,
+      filter: {
+        and: [
+          {
+            property: "予約メアド",
+            email: {
+              equals: userEmail,
+            },
+          },
+          {
+            property: "完了",
+            checkbox: {
+              equals: false,
+            },
+          },
+        ],
+      },
+      sorts: [
+        {
+          property: "実施日",
+          direction: "ascending",
+        },
+      ],
+    })
+
+    return response.results.map((page) => {
+      const properties = page.properties as any
+      const name = getPropertyValue(properties, "名前", "title")
+      const theme = getPropertyValue(properties, "講義テーマ", "multi_select")
+      const isPersonalConsultation = theme.includes("個人コンサル")
+      const dateRange = getPropertyValue(properties, "実施日", "date_range")
+      const reservationName = getPropertyValue(properties, "予約名前", "rich_text")
+      const reservationEmail = getPropertyValue(properties, "予約メアド", "email")
+      const isReserved = !!(reservationName && reservationEmail)
+
+      return {
+        id: page.id,
+        name,
+        url: getPropertyValue(properties, "URL", "url"),
+        password: getPropertyValue(properties, "パスワード", "rich_text"),
+        instructor: getPropertyValue(properties, "講師", "rich_text"),
+        dateRange,
+        theme,
+        isArchive: getPropertyValue(properties, "アーカイブ", "checkbox"),
+        completed: getPropertyValue(properties, "完了", "checkbox"),
+        isPersonalConsultation,
+        reservationName,
+        reservationEmail,
+        isReserved,
+      }
+    })
+  } catch (error) {
+    console.error("Failed to fetch user reserved schedules:", error)
+    return []
+  }
+}
 // 個人コンサルテーションを予約
 export async function reserveConsultation(scheduleId: string, name: string, email: string): Promise<boolean> {
   try {
@@ -468,13 +505,7 @@ export async function reserveConsultation(scheduleId: string, name: string, emai
           ],
         },
         予約メアド: {
-          rich_text: [
-            {
-              text: {
-                content: email,
-              },
-            },
-          ],
+          email: email,
         },
       },
     })

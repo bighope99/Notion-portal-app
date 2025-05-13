@@ -23,6 +23,7 @@ export default async function SchedulePage() {
           regularSchedules={scheduleData.regularSchedules}
           personalConsultations={scheduleData.personalConsultations}
           archives={scheduleData.archives}
+          userEmail={session.user.email}
         />
       </div>
     </div>

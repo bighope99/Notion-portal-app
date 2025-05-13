@@ -18,7 +18,8 @@ export interface Student {
   id: string
   name: string
   email: string
-  personalPage: string
+  personalPageId: string // 個人ページのリレーションID
+  personalPage: string // 従来の個人ページ（テキスト）
   progress: string
   lastViewedAt: string | null
   passwordHash?: string | null
@@ -37,9 +38,15 @@ export interface Task {
 export interface Submission {
   id: string
   name: string
-  personalPage: string
+  studentId: string // 学生のID
   url: string
   submittedAt?: string // 提出日時（存在する場合）
+}
+
+// 日付範囲の型定義
+export interface DateRange {
+  start: string
+  end: string | null
 }
 
 // 予定の型定義
@@ -49,10 +56,15 @@ export interface Schedule {
   url: string | null
   password: string | null
   instructor: string | null
-  date: string
+  dateRange: DateRange // 開始時間と終了時間を含む
   theme: string | null
   isArchive: boolean
   completed: boolean
+  isPersonalConsultation: boolean // 個人コンサルかどうか
+  reservationName: string | null // 予約者名
+  reservationEmail: string | null // 予約者メールアドレス
+  isReserved: boolean // 予約済みかどうか
+  rawProperties?: any // デバッグ用：生のプロパティデータ
 }
 
 // Notionのプロパティから安全に値を取得するヘルパー関数
@@ -71,11 +83,24 @@ function getPropertyValue(properties: any, propertyName: string, type: string): 
       case "checkbox":
         return property.checkbox || false
       case "date":
+        // 日付の場合は開始時間のみを返す
         return property.date?.start || null
+      case "date_range":
+        // 日付範囲の場合は開始時間と終了時間の両方を返す
+        return {
+          start: property.date?.start || null,
+          end: property.date?.end || null,
+        }
       case "select":
         return property.select?.name || null
       case "url":
         return property.url || null
+      case "relation":
+        // リレーションの場合は配列の最初の要素のIDを返す
+        return property.relation?.[0]?.id || ""
+      case "relation_array":
+        // リレーションの場合は配列全体を返す
+        return property.relation || []
       default:
         return null
     }
@@ -113,12 +138,17 @@ export async function getStudentByEmail(email: string): Promise<Student | null> 
     // デバッグ用にプロパティ名を出力
     console.log("Available properties:", Object.keys(properties))
 
+    // 個人ページのリレーションIDを取得
+    const personalPageRelation = getPropertyValue(properties, "個人ページ", "relation")
+    console.log(`Personal page relation ID: ${personalPageRelation}`)
+
     // 安全にプロパティを取得
     const student: Student = {
       id: page.id,
       name: getPropertyValue(properties, "名前", "title"),
       email: getPropertyValue(properties, "メールアドレス", "email"),
-      personalPage: getPropertyValue(properties, "個人ページ", "rich_text"),
+      personalPageId: personalPageRelation, // リレーションの最初のIDを保存
+      personalPage: getPropertyValue(properties, "個人ページ", "rich_text"), // 従来の個人ページ（テキスト）も保持
       progress: getPropertyValue(properties, "進捗", "rich_text"),
       lastViewedAt: getPropertyValue(properties, "最終閲覧時間", "date"),
       passwordHash: getPropertyValue(properties, "パスワード", "rich_text"),
@@ -190,15 +220,23 @@ export async function getPasswordHashByEmail(email: string): Promise<string | nu
   }
 }
 
-// 個人ページに関連するタスクを取得
-export async function getTasksByPersonalPage(personalPage: string): Promise<Task[]> {
+// 学生IDに関連するタスクを取得
+export async function getTasksByStudentId(studentId: string): Promise<Task[]> {
   try {
+    // studentIdが空の場合は空の配列を返す
+    if (!studentId) {
+      console.log("studentId is empty, returning empty tasks array")
+      return []
+    }
+
+    console.log(`Fetching tasks for studentId: ${studentId}`)
+
     const response = await notion.databases.query({
       database_id: TASKS_DB_ID,
       filter: {
         property: "誰タスク",
-        rich_text: {
-          equals: personalPage,
+        relation: {
+          contains: studentId,
         },
       },
     })
@@ -209,7 +247,7 @@ export async function getTasksByPersonalPage(personalPage: string): Promise<Task
       return {
         id: page.id,
         name: getPropertyValue(properties, "名前", "title"),
-        assignedTo: getPropertyValue(properties, "誰タスク", "rich_text"),
+        assignedTo: studentId, // リレーションの場合は学生IDを設定
         completed: getPropertyValue(properties, "完了", "checkbox"),
       }
     })
@@ -238,15 +276,23 @@ export async function updateTaskStatus(taskId: string, completed: boolean): Prom
   }
 }
 
-// 個人ページに関連する提出物を取得
-export async function getSubmissionsByPersonalPage(personalPage: string): Promise<Submission[]> {
+// 学生IDに関連する提出物を取得
+export async function getSubmissionsByStudentId(studentId: string): Promise<Submission[]> {
   try {
+    // studentIdが空の場合は空の配列を返す
+    if (!studentId) {
+      console.log("studentId is empty, returning empty submissions array")
+      return []
+    }
+
+    console.log(`Fetching submissions for studentId: ${studentId}`)
+
     const response = await notion.databases.query({
       database_id: SUBMISSIONS_DB_ID,
       filter: {
         property: "個人ページ",
-        rich_text: {
-          equals: personalPage,
+        relation: {
+          contains: studentId,
         },
       },
       sorts: [
@@ -264,7 +310,7 @@ export async function getSubmissionsByPersonalPage(personalPage: string): Promis
       return {
         id: page.id,
         name: getPropertyValue(properties, "名前", "title"),
-        personalPage: getPropertyValue(properties, "個人ページ", "rich_text"),
+        studentId, // 学生IDを設定
         url: getPropertyValue(properties, "URL", "url"),
         submittedAt: createdTime || "",
       }
@@ -276,7 +322,7 @@ export async function getSubmissionsByPersonalPage(personalPage: string): Promis
 }
 
 // 提出物を追加
-export async function addSubmission(personalPage: string, name: string, url: string): Promise<boolean> {
+export async function addSubmission(studentId: string, name: string, url: string): Promise<boolean> {
   try {
     await notion.pages.create({
       parent: {
@@ -296,11 +342,9 @@ export async function addSubmission(personalPage: string, name: string, url: str
           url: url,
         },
         個人ページ: {
-          rich_text: [
+          relation: [
             {
-              text: {
-                content: personalPage,
-              },
+              id: studentId,
             },
           ],
         },
@@ -315,7 +359,11 @@ export async function addSubmission(personalPage: string, name: string, url: str
 }
 
 // 予定を取得（完了していないもののみ）
-export async function getSchedules(): Promise<Schedule[]> {
+export async function getSchedules(): Promise<{
+  regularSchedules: Schedule[]
+  personalConsultations: Schedule[]
+  archives: Schedule[]
+}> {
   try {
     const response = await notion.databases.query({
       database_id: SCHEDULES_DB_ID,
@@ -333,23 +381,107 @@ export async function getSchedules(): Promise<Schedule[]> {
       ],
     })
 
-    return response.results.map((page) => {
+    // デバッグ用：取得したデータをそのままコンソールに出力
+    console.log("Raw schedule data from Notion:", JSON.stringify(response.results, null, 2))
+
+    const schedules = response.results.map((page) => {
       const properties = page.properties as any
+      const name = getPropertyValue(properties, "名前", "title")
+      const theme = getPropertyValue(properties, "講義テーマ", "select")
+
+      // 講義テーマが"個人コンサル"かどうかで判定
+      const isPersonalConsultation = theme === "個人コンサル"
+
+      // 日付範囲（開始時間と終了時間）を取得
+      const dateRange = getPropertyValue(properties, "実施日", "date_range")
+
+      // 予約情報を取得
+      const reservationName = getPropertyValue(properties, "予約名前", "rich_text")
+      const reservationEmail = getPropertyValue(properties, "予約メアド", "rich_text")
+      const isReserved = !!(reservationName && reservationEmail)
+
+      // デバッグ用：各予定の生のプロパティデータをコンソールに出力
+      console.log(`Schedule "${name}" properties:`, properties)
+      console.log(`Schedule "${name}" date range:`, dateRange)
+      console.log(`Schedule "${name}" theme:`, theme)
+      console.log(`Schedule "${name}" reservation:`, { reservationName, reservationEmail, isReserved })
 
       return {
         id: page.id,
-        name: getPropertyValue(properties, "名前", "title"),
+        name,
         url: getPropertyValue(properties, "URL", "url"),
         password: getPropertyValue(properties, "パスワード", "rich_text"),
         instructor: getPropertyValue(properties, "講師", "rich_text"),
-        date: getPropertyValue(properties, "実施日", "date"),
-        theme: getPropertyValue(properties, "講義テーマ", "select"),
+        dateRange, // 開始時間と終了時間を含む
+        theme,
         isArchive: getPropertyValue(properties, "アーカイブ", "checkbox"),
         completed: getPropertyValue(properties, "完了", "checkbox"),
+        isPersonalConsultation,
+        reservationName,
+        reservationEmail,
+        isReserved,
+        rawProperties: properties, // デバッグ用：生のプロパティデータ
       }
     })
+
+    // デバッグ用：パース後のデータをコンソールに出力
+    console.log("Parsed schedule data:", schedules)
+
+    // 予定を分類
+    const regularSchedules = schedules.filter((schedule) => !schedule.isArchive && !schedule.isPersonalConsultation)
+
+    // 個人コンサルテーションは予約済みのものを除外
+    const personalConsultations = schedules.filter(
+      (schedule) => !schedule.isArchive && schedule.isPersonalConsultation && !schedule.isReserved,
+    )
+
+    const archives = schedules.filter((schedule) => schedule.isArchive)
+
+    return {
+      regularSchedules,
+      personalConsultations,
+      archives,
+    }
   } catch (error) {
     console.error("Failed to fetch schedules:", error)
-    return []
+    return {
+      regularSchedules: [],
+      personalConsultations: [],
+      archives: [],
+    }
+  }
+}
+
+// 個人コンサルテーションを予約
+export async function reserveConsultation(scheduleId: string, name: string, email: string): Promise<boolean> {
+  try {
+    await notion.pages.update({
+      page_id: scheduleId,
+      properties: {
+        予約名前: {
+          rich_text: [
+            {
+              text: {
+                content: name,
+              },
+            },
+          ],
+        },
+        予約メアド: {
+          rich_text: [
+            {
+              text: {
+                content: email,
+              },
+            },
+          ],
+        },
+      },
+    })
+
+    return true
+  } catch (error) {
+    console.error("Failed to reserve consultation:", error)
+    return false
   }
 }

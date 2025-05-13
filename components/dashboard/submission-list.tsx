@@ -7,7 +7,7 @@ import { type Submission, addSubmission } from "@/lib/notion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { PlusCircle, ExternalLink } from "lucide-react"
+import { PlusCircle, ExternalLink, AlertCircle } from "lucide-react"
 import { format } from "date-fns"
 import { ja } from "date-fns/locale"
 import { useToast } from "@/hooks/use-toast"
@@ -20,13 +20,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 interface SubmissionListProps {
   submissions: Submission[]
-  personalPage: string
+  studentId: string
 }
 
-export default function SubmissionList({ submissions: initialSubmissions, personalPage }: SubmissionListProps) {
+export default function SubmissionList({ submissions: initialSubmissions, studentId }: SubmissionListProps) {
   const [submissions, setSubmissions] = useState<Submission[]>(initialSubmissions)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [title, setTitle] = useState("")
@@ -34,18 +35,26 @@ export default function SubmissionList({ submissions: initialSubmissions, person
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { toast } = useToast()
 
+  // studentIdが有効なIDかどうかをチェック（簡易的なチェック）
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  const isValidStudentId = studentId && uuidRegex.test(studentId)
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
 
     try {
-      const success = await addSubmission(personalPage, title, url)
+      if (!isValidStudentId) {
+        throw new Error("学生IDが無効です")
+      }
+
+      const success = await addSubmission(studentId, title, url)
 
       if (success) {
         const newSubmission: Submission = {
           id: Date.now().toString(), // 一時的なID
           name: title,
-          personalPage,
+          studentId,
           url,
           submittedAt: new Date().toISOString(),
         }
@@ -65,7 +74,7 @@ export default function SubmissionList({ submissions: initialSubmissions, person
     } catch (error) {
       toast({
         title: "エラー",
-        description: "課題の提出に失敗しました",
+        description: error instanceof Error ? error.message : "課題の提出に失敗しました",
         variant: "destructive",
       })
     } finally {
@@ -115,6 +124,13 @@ export default function SubmissionList({ submissions: initialSubmissions, person
           </DialogContent>
         </Dialog>
       </div>
+
+      {!isValidStudentId && (
+        <Alert variant="warning" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>学生IDが無効なため、提出物の追加ができません。</AlertDescription>
+        </Alert>
+      )}
 
       {submissions.length === 0 ? (
         <div className="text-center py-8 text-gray-500">提出された課題はありません</div>

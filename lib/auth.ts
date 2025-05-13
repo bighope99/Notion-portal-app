@@ -164,12 +164,16 @@ export async function getSession() {
       return null
     }
 
+    // personalPageIdの値をログに出力（デバッグ用）
+    console.log(`Session: personalPageId = "${student.personalPageId}"`)
+
     return {
       user: {
         email: payload.email,
         id: student.id,
         name: student.name,
-        personalPage: student.personalPage,
+        personalPageId: student.personalPageId || "", // 個人ページのリレーションID
+        personalPage: student.personalPage || "", // 従来の個人ページ（テキスト）も保持
         progress: student.progress,
       },
     }

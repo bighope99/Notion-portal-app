@@ -20,5 +20,5 @@ export function middleware(request: NextRequest) {
 
 // ミドルウェアを適用するパス
 export const config = {
-  matcher: ["/", "/login", "/dashboard/:path*"],
+  matcher: ["/", "/login", "/dashboard", "/dashboard/:path*"],
 }

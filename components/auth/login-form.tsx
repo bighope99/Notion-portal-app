@@ -21,42 +21,33 @@ export default function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  // リダイレクトループからの強制ログアウトを検出
+  // URLパラメータからエラー状態を取得
+  const sessionInvalid = searchParams.get("session_invalid") === "true"
+  const validationError = searchParams.get("error") === "session_validation_failed"
   const forcedLogout = searchParams.get("forced_logout") === "true"
 
-  // ページロード時に古いセッションをクリアする
+  // ページロード時に状態をチェック
   useEffect(() => {
-    // 強制ログアウトパラメータがある場合はメッセージを表示
-    if (forcedLogout) {
+    // セッション無効のメッセージを表示
+    if (sessionInvalid) {
+      setError("セッションが無効になりました。再度ログインしてください。")
+    } else if (validationError) {
+      setError("セッションの検証中にエラーが発生しました。再度ログインしてください。")
+    } else if (forcedLogout) {
       setError("セッションに問題が発生したため、自動的にログアウトしました。再度ログインしてください。")
     }
 
-    // クライアントサイドでCookieをチェック
-    const checkAndClearSession = async () => {
-      try {
-        // auth_tokenのCookieが存在するが無効な場合、ログアウト処理を実行
-        const authCookie = document.cookie.split(";").find((c) => c.trim().startsWith("auth_token="))
-        if (authCookie) {
-          // セッションの有効性をチェック（オプション）
-          const response = await fetch("/api/auth/check-session")
-          const data = await response.json()
-
-          if (!data.valid) {
-            // セッションが無効な場合、ログアウトAPIを呼び出す
-            await fetch("/api/auth/logout", { method: "POST" })
-
-            // クライアントサイドでもCookieを削除
-            document.cookie = "auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT"
-            document.cookie = "redirect_count=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT"
-          }
-        }
-      } catch (error) {
-        console.error("Session check error:", error)
-      }
+    // クライアントサイドでCookieをクリア
+    const clearCookies = () => {
+      document.cookie = "auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT"
+      document.cookie = "redirect_count=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT"
     }
 
-    checkAndClearSession()
-  }, [forcedLogout])
+    // セッション関連のエラーがある場合は、確実にCookieをクリア
+    if (sessionInvalid || validationError || forcedLogout) {
+      clearCookies()
+    }
+  }, [sessionInvalid, validationError, forcedLogout])
 
   const handleMagicLinkSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

@@ -1,6 +1,7 @@
 "use client"
 
 import { ExternalLink } from "lucide-react"
+import { useState, useEffect } from "react"
 
 interface PersonalLinksProps {
   personalLink1: string | null
@@ -19,14 +20,37 @@ export default function PersonalLinks({
   linkName2,
   linkName3,
 }: PersonalLinksProps) {
+  // クライアントサイドでのみレンダリングを行う
+  const [isClient, setIsClient] = useState(false)
+
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+
   // リンクが1つもない場合は何も表示しない
   if (!personalLink1 && !personalLink2 && !personalLink3) {
     return null
   }
 
+  // サーバーサイドレンダリング時は何も表示しない
+  if (!isClient) {
+    return null
+  }
+
+  // リンクの有効性を確認する関数
+  const isValidUrl = (url: string | null): boolean => {
+    if (!url) return false
+    try {
+      new URL(url)
+      return true
+    } catch (e) {
+      return false
+    }
+  }
+
   return (
     <div className="flex flex-wrap gap-4 mb-6">
-      {personalLink1 && (
+      {personalLink1 && isValidUrl(personalLink1) && (
         <a
           href={personalLink1}
           target="_blank"
@@ -38,7 +62,7 @@ export default function PersonalLinks({
         </a>
       )}
 
-      {personalLink2 && (
+      {personalLink2 && isValidUrl(personalLink2) && (
         <a
           href={personalLink2}
           target="_blank"
@@ -50,7 +74,7 @@ export default function PersonalLinks({
         </a>
       )}
 
-      {personalLink3 && (
+      {personalLink3 && isValidUrl(personalLink3) && (
         <a
           href={personalLink3}
           target="_blank"

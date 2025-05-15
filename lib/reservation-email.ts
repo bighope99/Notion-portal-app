@@ -11,10 +11,7 @@ export async function sendReservationEmails(
   instructor: string | null,
 ): Promise<void> {
   try {
-    // 1. 予約者へのメール送信
-    await sendReservationConfirmationEmail(userName, userEmail, scheduleName, formattedDate, instructor)
-
-    // 2. オーナーへの通知メール送信
+    // オーナーへの通知メール送信
     await sendReservationNotificationEmail(userName, userEmail, scheduleName, formattedDate, instructor)
   } catch (error) {
     console.error("Failed to send reservation emails:", error)
@@ -29,7 +26,7 @@ async function sendReservationNotificationEmail(
   formattedDate: string,
   instructor: string | null,
 ): Promise<void> {
-  const ownerEmail = "taiki.work99@gmail.com"
+  const ownerEmail = "salonem.aroma@gmail.com"
   const subject = `【新規予約】個人コンサル(${userName}様)`
 
   const html = `

@@ -329,22 +329,27 @@ export default function ScheduleCalendar({ schedules }: ScheduleCalendarProps) {
                   </div>
 
                   <div className="mt-4 space-y-2">
-                    {schedule.url && (
-                      <a
-                        href={schedule.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block text-sm text-blue-600 hover:text-blue-800 flex items-center"
-                      >
-                        <ExternalLink className="h-4 w-4 mr-1" />
-                        {schedule.isArchive ? "アーカイブを見る" : "ミーティングに参加"}
-                      </a>
-                    )}
+                    {/* 個人コンサルで予約前の場合はURLとパスワードを表示しない */}
+                    {(!schedule.isPersonalConsultation || schedule.reservationName) && (
+                      <>
+                        {schedule.url && (
+                          <a
+                            href={schedule.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block text-sm text-blue-600 hover:text-blue-800 flex items-center"
+                          >
+                            <ExternalLink className="h-4 w-4 mr-1" />
+                            {schedule.isArchive ? "アーカイブを見る" : "ミーティングに参加"}
+                          </a>
+                        )}
 
-                    {schedule.password && (
-                      <p className="text-sm">
-                        パスワード: <span className="font-mono">{schedule.password}</span>
-                      </p>
+                        {schedule.password && (
+                          <p className="text-sm">
+                            パスワード: <span className="font-mono">{schedule.password}</span>
+                          </p>
+                        )}
+                      </>
                     )}
 
                     {schedule.isPersonalConsultation && (

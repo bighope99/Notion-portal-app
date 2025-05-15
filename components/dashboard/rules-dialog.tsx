@@ -29,7 +29,7 @@ export function RulesDialog() {
             <div>
               <h3 className="text-lg font-semibold">①アウトプットは"習慣化"</h3>
               <p className="mt-2 text-sm text-gray-600">
-                週に1回以上、アウトプットを投稿してください。 内容は自由ですが、以下のようなテーマが投稿しやすいです。
+                週に1回以上、��ウトプットを投稿してください。 内容は自由ですが、以下のようなテーマが投稿しやすいです。
               </p>
               <ul className="mt-2 list-disc pl-5 text-sm text-gray-600">
                 <li>今週の気づき・学び</li>

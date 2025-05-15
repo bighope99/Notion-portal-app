@@ -5,6 +5,7 @@ import TaskList from "@/components/dashboard/task-list"
 import SubmissionList from "@/components/dashboard/submission-list"
 import type { Task, Submission } from "@/lib/notion"
 import { useEffect, useState } from "react"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
 
 interface TaskSubmissionTabProps {
   tasks: Task[]
@@ -15,12 +16,15 @@ interface TaskSubmissionTabProps {
 export default function TaskSubmissionTab({ tasks, submissions, studentId }: TaskSubmissionTabProps) {
   // エラーを防ぐためにクライアントサイドでのみレンダリングを行う
   const [isClient, setIsClient] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     setIsClient(true)
+    // データが読み込まれたらローディング状態を解除
+    setIsLoading(false)
   }, [])
 
-  if (!isClient) {
+  if (!isClient || isLoading) {
     return (
       <Card>
         <CardHeader>
@@ -29,7 +33,7 @@ export default function TaskSubmissionTab({ tasks, submissions, studentId }: Tas
         </CardHeader>
         <CardContent>
           <div className="flex justify-center py-8">
-            <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-gray-900"></div>
+            <LoadingSpinner size={24} className="text-blue-600" />
           </div>
         </CardContent>
       </Card>

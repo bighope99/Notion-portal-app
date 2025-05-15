@@ -191,7 +191,7 @@ export async function logout() {
     expires: new Date(0),
   })
 
-  // リダイレクトカウンターもリセット
+  // リダイレクトカウンター���リセット
   cookieStore.delete("redirect_count", {
     path: "/",
     secure: process.env.NODE_ENV === "production",

@@ -6,6 +6,8 @@ import TaskSubmissionTab from "@/components/dashboard/task-submission-tab"
 import PersonalLinks from "@/components/dashboard/personal-links"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
+import { Suspense } from "react"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
 
 export default async function TaskPage() {
   const session = await getSession()
@@ -19,7 +21,12 @@ export default async function TaskPage() {
   const personalPageId = session.user.personalPageId || ""
 
   // 最終閲覧時間を更新
-  await updateLastViewedAt(studentId)
+  try {
+    await updateLastViewedAt(studentId)
+  } catch (error) {
+    console.error("Failed to update last viewed at:", error)
+    // 非クリティカルな操作なので、エラーが発生しても続行
+  }
 
   // データ取得のためのステート
   let tasks = []
@@ -32,8 +39,8 @@ export default async function TaskPage() {
     // 個人ページのリレーションIDを使用してタスクと提出物を取得
     // personalPageIdが空の場合は空の配列を使用
     const results = await Promise.allSettled([
-      personalPageId ? getTasksByStudentId(personalPageId) : [],
-      personalPageId ? getSubmissionsByStudentId(personalPageId) : [],
+      personalPageId ? getTasksByStudentId(personalPageId) : Promise.resolve([]),
+      personalPageId ? getSubmissionsByStudentId(personalPageId) : Promise.resolve([]),
       getStudentByEmail(session.user.email),
     ])
 
@@ -85,19 +92,35 @@ export default async function TaskPage() {
       )}
 
       {/* 個人リンクをタスクと提出物のタブの上に配置 */}
-      {student && (
-        <PersonalLinks
-          personalLink1={student.personalLink1}
-          personalLink2={student.personalLink2}
-          personalLink3={student.personalLink3}
-          linkName1={student.linkName1}
-          linkName2={student.linkName2}
-          linkName3={student.linkName3}
-        />
-      )}
+      <Suspense
+        fallback={
+          <div className="flex justify-center py-4">
+            <LoadingSpinner />
+          </div>
+        }
+      >
+        {student && (
+          <PersonalLinks
+            personalLink1={student.personalLink1}
+            personalLink2={student.personalLink2}
+            personalLink3={student.personalLink3}
+            linkName1={student.linkName1}
+            linkName2={student.linkName2}
+            linkName3={student.linkName3}
+          />
+        )}
+      </Suspense>
 
       <div className="mt-0">
-        <TaskSubmissionTab tasks={tasks} submissions={submissions} studentId={personalPageId} />
+        <Suspense
+          fallback={
+            <div className="flex justify-center py-8">
+              <LoadingSpinner />
+            </div>
+          }
+        >
+          <TaskSubmissionTab tasks={tasks} submissions={submissions} studentId={personalPageId} />
+        </Suspense>
       </div>
     </div>
   )

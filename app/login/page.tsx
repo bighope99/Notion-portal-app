@@ -2,12 +2,21 @@ import LoginForm from "@/components/auth/login-form"
 import { getSession } from "@/lib/auth"
 import { redirect } from "next/navigation"
 
-export default async function LoginPage() {
-  const session = await getSession()
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams?: { [key: string]: string | string[] | undefined }
+}) {
+  // 強制ログアウトパラメータがある場合は、セッションチェックをスキップ
+  const forcedLogout = searchParams?.forced_logout === "true"
 
-  // セッションがある場合は予定ページにリダイレクト
-  if (session) {
-    redirect("/dashboard/schedule")
+  if (!forcedLogout) {
+    const session = await getSession()
+
+    // セッションがある場合は予定ページにリダイレクト
+    if (session) {
+      redirect("/dashboard/schedule")
+    }
   }
 
   return (

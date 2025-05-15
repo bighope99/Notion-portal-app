@@ -188,6 +188,44 @@ export async function logout() {
     expires: new Date(0),
   })
 
+  // リダイレクトカウンターもリセット
+  cookieStore.delete("redirect_count", {
+    path: "/",
+    secure: process.env.NODE_ENV === "production",
+    httpOnly: true,
+  })
+
+  return true
+}
+
+// 強制ログアウト処理 - リダイレクトループ対策
+export async function forceLogout() {
+  const cookieStore = cookies()
+
+  // すべての認証関連Cookieを削除
+  cookieStore.delete("auth_token", {
+    path: "/",
+    secure: process.env.NODE_ENV === "production",
+    httpOnly: true,
+  })
+
+  cookieStore.delete("redirect_count", {
+    path: "/",
+    secure: process.env.NODE_ENV === "production",
+    httpOnly: true,
+  })
+
+  // 追加のセキュリティとして、期限切れの値を設定
+  cookieStore.set("auth_token", "", {
+    expires: new Date(0),
+    path: "/",
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+  })
+
+  // ログ出力
+  console.warn("Force logout executed due to redirect loop")
+
   return true
 }
 
@@ -219,6 +257,14 @@ export async function handleCallback(token: string) {
       secure: process.env.NODE_ENV === "production",
       maxAge: 60 * 60 * 24 * 7, // 1週間
       path: "/",
+    })
+
+    // リダイレクトカウンターをリセット
+    cookieStore.set("redirect_count", "0", {
+      path: "/",
+      maxAge: 60, // 1分間だけ有効
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
     })
 
     // パスワードが設定されているかどうかを確認

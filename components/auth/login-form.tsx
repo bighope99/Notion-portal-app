@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -19,9 +19,18 @@ export default function LoginForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  // リダイレクトループからの強制ログアウトを検出
+  const forcedLogout = searchParams.get("forced_logout") === "true"
 
   // ページロード時に古いセッションをクリアする
   useEffect(() => {
+    // 強制ログアウトパラメータがある場合はメッセージを表示
+    if (forcedLogout) {
+      setError("セッションに問題が発生したため、自動的にログアウトしました。再度ログインしてください。")
+    }
+
     // クライアントサイドでCookieをチェック
     const checkAndClearSession = async () => {
       try {
@@ -38,6 +47,7 @@ export default function LoginForm() {
 
             // クライアントサイドでもCookieを削除
             document.cookie = "auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT"
+            document.cookie = "redirect_count=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT"
           }
         }
       } catch (error) {
@@ -46,7 +56,7 @@ export default function LoginForm() {
     }
 
     checkAndClearSession()
-  }, [])
+  }, [forcedLogout])
 
   const handleMagicLinkSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

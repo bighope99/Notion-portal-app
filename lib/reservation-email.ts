@@ -41,9 +41,7 @@ async function sendReservationNotificationEmail(
         <p><strong>内容:</strong> ${scheduleName}</p>
         ${instructor ? `<p><strong>講師:</strong> ${instructor}</p>` : ""}
       </div>
-      
-      <p>予約者には自動的に確認メールが送信されています。</p>
-      
+            
       <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
       <p style="font-size: 12px; color: #666;">このメールは自動送信されています。</p>
     </div>

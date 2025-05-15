@@ -4,24 +4,24 @@ import { Client } from "@notionhq/client"
 import { sendReservationEmails } from "./reservation-email"
 
 // Notion APIクライアントの初期化（改善版）
-let notion: Client | null = null
+let notionClient: Client | null = null
 
 // Notionクライアントの初期化関数
 function initNotionClient() {
-  if (notion) return notion
+  if (notionClient) return notionClient
 
   try {
     if (!process.env.NOTION_API_KEY) {
       throw new Error("NOTION_API_KEY is not set")
     }
 
-    notion = new Client({
+    notionClient = new Client({
       auth: process.env.NOTION_API_KEY,
       // タイムアウト設定を追加（15秒）
       timeoutMs: 15000,
     })
 
-    return notion
+    return notionClient
   } catch (error) {
     console.error("Failed to initialize Notion client:", error)
     return null
@@ -150,6 +150,12 @@ function getPropertyValue(properties: any, propertyName: string, type: string): 
 // メールアドレスから学生情報を取得
 export async function getStudentByEmail(email: string): Promise<Student | null> {
   try {
+    // Notionクライアントを初期化
+    const notion = initNotionClient()
+    if (!notion) {
+      throw new Error("Notion client initialization failed")
+    }
+
     const response = await notion.databases.query({
       database_id: STUDENTS_DB_ID,
       filter: {
@@ -201,6 +207,12 @@ export async function getStudentByEmail(email: string): Promise<Student | null> 
 // 学生の最終閲覧時間を更新
 export async function updateLastViewedAt(studentId: string): Promise<boolean> {
   try {
+    // Notionクライアントを初期化
+    const notion = initNotionClient()
+    if (!notion) {
+      throw new Error("Notion client initialization failed")
+    }
+
     await notion.pages.update({
       page_id: studentId,
       properties: {
@@ -221,6 +233,12 @@ export async function updateLastViewedAt(studentId: string): Promise<boolean> {
 // パスワードハッシュを保存
 export async function savePasswordHash(studentId: string, passwordHash: string): Promise<boolean> {
   try {
+    // Notionクライアントを初期化
+    const notion = initNotionClient()
+    if (!notion) {
+      throw new Error("Notion client initialization failed")
+    }
+
     await notion.pages.update({
       page_id: studentId,
       properties: {
@@ -262,6 +280,12 @@ export async function getTasksByStudentId(studentId: string): Promise<Task[]> {
       return []
     }
 
+    // Notionクライアントを初期化
+    const notion = initNotionClient()
+    if (!notion) {
+      throw new Error("Notion client initialization failed")
+    }
+
     const response = await notion.databases.query({
       database_id: TASKS_DB_ID,
       filter: {
@@ -291,6 +315,12 @@ export async function getTasksByStudentId(studentId: string): Promise<Task[]> {
 // タスクの完了状態を更新
 export async function updateTaskStatus(taskId: string, completed: boolean): Promise<boolean> {
   try {
+    // Notionクライアントを初期化
+    const notion = initNotionClient()
+    if (!notion) {
+      throw new Error("Notion client initialization failed")
+    }
+
     await notion.pages.update({
       page_id: taskId,
       properties: {
@@ -313,6 +343,12 @@ export async function getSubmissionsByStudentId(studentId: string): Promise<Subm
     // studentIdが空の場合は空の配列を返す
     if (!studentId) {
       return []
+    }
+
+    // Notionクライアントを初期化
+    const notion = initNotionClient()
+    if (!notion) {
+      throw new Error("Notion client initialization failed")
     }
 
     const response = await notion.databases.query({
@@ -352,6 +388,12 @@ export async function getSubmissionsByStudentId(studentId: string): Promise<Subm
 // 提出物を追加
 export async function addSubmission(studentId: string, name: string, url: string): Promise<boolean> {
   try {
+    // Notionクライアントを初期化
+    const notion = initNotionClient()
+    if (!notion) {
+      throw new Error("Notion client initialization failed")
+    }
+
     await notion.pages.create({
       parent: {
         database_id: SUBMISSIONS_DB_ID,
@@ -396,7 +438,7 @@ export async function getSchedules(): Promise<{
   const startTime = Date.now()
 
   try {
-    // Notionクライアントを取得
+    // Notionクライアントを初期化
     const notionClient = initNotionClient()
 
     if (!notionClient) {
@@ -530,6 +572,12 @@ export async function getSchedules(): Promise<{
 // ユーザーが予約済みの予定を取得
 export async function getUserReservedSchedules(userEmail: string): Promise<Schedule[]> {
   try {
+    // Notionクライアントを初期化
+    const notion = initNotionClient()
+    if (!notion) {
+      throw new Error("Notion client initialization failed")
+    }
+
     const response = await notion.databases.query({
       database_id: SCHEDULES_DB_ID,
       filter: {
@@ -590,6 +638,12 @@ export async function getUserReservedSchedules(userEmail: string): Promise<Sched
 // 個人コンサルテーションを予約
 export async function reserveConsultation(scheduleId: string, name: string, email: string): Promise<boolean> {
   try {
+    // Notionクライアントを初期化
+    const notion = initNotionClient()
+    if (!notion) {
+      throw new Error("Notion client initialization failed")
+    }
+
     // Notionデータベースの更新
     await notion.pages.update({
       page_id: scheduleId,

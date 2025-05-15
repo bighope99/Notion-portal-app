@@ -55,10 +55,12 @@ export default function PasswordSetupForm() {
 
       if (data.success) {
         setSuccess(true)
-        // 3秒後に予定ページにリダイレクト
+        // 2秒後に予定ページにリダイレクト
         setTimeout(() => {
           router.push("/dashboard/schedule")
-        }, 3000)
+          // 強制的にページをリロード（キャッシュをクリア）
+          window.location.href = "/dashboard/schedule"
+        }, 2000)
       } else {
         throw new Error(data.error || "パスワードの設定に失敗しました")
       }

@@ -4,7 +4,7 @@ import { cookies } from "next/headers"
 import { getStudentByEmail } from "./notion"
 import { createHash } from "crypto"
 import { generateToken, verifyToken } from "./token"
-import { sendEmail } from "./email"
+import { sendEmail } from "./email" // @/lib/mail から @/lib/email に修正
 import { savePasswordHash, getPasswordHashByEmail } from "./notion"
 
 // 秘密鍵
@@ -95,7 +95,9 @@ export async function login(email: string, isReset = false) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
     // パスワードリセットの場合は、reset=trueパラメータを追加
     const resetParam = isReset ? "&reset=true" : ""
-    const loginUrl = `${appUrl}/api/auth/callback?token=${encodeURIComponent(token)}${resetParam}`
+    // パスワードが既に設定されている場合は、has_password=trueパラメータを追加
+    const passwordParam = hasPassword && !isReset ? "&has_password=true" : ""
+    const loginUrl = `${appUrl}/api/auth/callback?token=${encodeURIComponent(token)}${resetParam}${passwordParam}`
 
     // メール送信（GASを使用）
     try {
@@ -106,7 +108,8 @@ export async function login(email: string, isReset = false) {
            <p>このリンクの有効期限は24時間です。</p>`
         : `<p>学習ポータルにログインするには、以下のリンクをクリックしてください：</p>
            <p><a href="${loginUrl}">ログインする</a></p>
-           <p>このリンクの有効期限は24時間です。</p>`
+           <p>このリンクの有効期限は24時間です。</p>
+           ${hasPassword ? "<p>※パスワードを設定済みの方は、ログインページからパスワードでもログインできます。</p>" : ""}`
 
       const emailResult = await sendEmail(email, subject, content)
 

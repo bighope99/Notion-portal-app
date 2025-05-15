@@ -14,10 +14,19 @@ export async function GET(request: Request) {
     const result = await handleCallback(token)
 
     if (result.success) {
-      // パスワードが設定されていない場合、またはパスワードリセットの場合は、パスワード設定ページにリダイレクト
-      if (!result.hasPassword || isReset) {
+      // パスワードリセットの場合は、常にパスワード設定ページにリダイレクト
+      if (isReset) {
         return NextResponse.redirect(new URL("/dashboard/setup-password", request.url))
       }
+
+      // パスワードが設定されているか確認
+      const hasPassword = result.hasPassword || false
+
+      // パスワードが設定されていない場合は、パスワード設定ページにリダイレクト
+      if (!hasPassword) {
+        return NextResponse.redirect(new URL("/dashboard/setup-password", request.url))
+      }
+
       // それ以外は予定ページにリダイレクト
       return NextResponse.redirect(new URL("/dashboard/schedule", request.url))
     } else {

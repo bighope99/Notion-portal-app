@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import TaskList from "@/components/dashboard/task-list"
 import SubmissionList from "@/components/dashboard/submission-list"
 import type { Task, Submission } from "@/lib/notion"
+import { useEffect, useState } from "react"
 
 interface TaskSubmissionTabProps {
   tasks: Task[]
@@ -12,6 +13,29 @@ interface TaskSubmissionTabProps {
 }
 
 export default function TaskSubmissionTab({ tasks, submissions, studentId }: TaskSubmissionTabProps) {
+  // エラーを防ぐためにクライアントサイドでのみレンダリングを行う
+  const [isClient, setIsClient] = useState(false)
+
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+
+  if (!isClient) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>タスクと提出物</CardTitle>
+          <CardDescription>読み込み中...</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex justify-center py-8">
+            <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-gray-900"></div>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
     <Card>
       <CardHeader>

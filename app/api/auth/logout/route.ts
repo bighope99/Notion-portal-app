@@ -6,7 +6,11 @@ export async function POST() {
     // ログアウト処理
     await logout()
 
-    return NextResponse.json({ success: true })
+    // 明示的にCookieを削除するレスポンスを返す
+    const response = NextResponse.json({ success: true })
+    response.cookies.delete("auth_token")
+
+    return response
   } catch (error) {
     console.error("Logout error:", error)
     return NextResponse.json({ success: false, error: "Logout failed" }, { status: 500 })

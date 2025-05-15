@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { AlertCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { LoadingOverlay } from "@/components/ui/loading-overlay"
 
 export default function LoginForm() {
   const [email, setEmail] = useState("")
@@ -76,8 +77,8 @@ export default function LoginForm() {
       const data = await response.json()
 
       if (data.success) {
-        // ログイン成功時はダッシュボードにリダイレクト
-        router.push("/dashboard")
+        // ログイン成功時は予定ページにリダイレクト
+        router.push("/dashboard/schedule")
         router.refresh() // セッション状態を更新
       } else {
         if (data.error === "user_not_found") {
@@ -137,83 +138,90 @@ export default function LoginForm() {
   }
 
   return (
-    <Card className="shadow-lg">
-      <CardHeader>
-        <CardTitle>ログイン</CardTitle>
-        <CardDescription>学習ポータルにログインします</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {error && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-        <Tabs defaultValue="password" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="password">ログイン</TabsTrigger>
-            <TabsTrigger value="magic">初めての方</TabsTrigger>
-          </TabsList>
-          <TabsContent value="password">
-            <form onSubmit={handlePasswordSubmit} className="space-y-4 mt-4">
-              <div className="grid gap-2">
-                <Label htmlFor="email-password">メールアドレス</Label>
-                <Input
-                  id="email-password"
-                  type="email"
-                  placeholder="your@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="w-full"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="password">パスワード</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="w-full"
-                />
-                <div className="text-right">
-                  <button
-                    type="button"
-                    onClick={handleForgotPassword}
-                    className="text-xs text-blue-600 hover:text-blue-800"
-                  >
-                    パスワードをお忘れの方はこちら
-                  </button>
+    <>
+      {isLoading && <LoadingOverlay />}
+      <Card className="shadow-lg">
+        <CardHeader>
+          <CardTitle>ログイン</CardTitle>
+          <CardDescription>学習ポータルにログインします</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {error && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          <Tabs defaultValue="password" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="password">ログイン</TabsTrigger>
+              <TabsTrigger value="magic">初めての方</TabsTrigger>
+            </TabsList>
+            <TabsContent value="password">
+              <form onSubmit={handlePasswordSubmit} className="space-y-4 mt-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="email-password">メールアドレス</Label>
+                  <Input
+                    id="email-password"
+                    type="email"
+                    placeholder="your@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="w-full"
+                    disabled={isLoading}
+                  />
                 </div>
-              </div>
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "ログイン中..." : "ログイン"}
-              </Button>
-            </form>
-          </TabsContent>
-          <TabsContent value="magic">
-            <form onSubmit={handleMagicLinkSubmit} className="space-y-4 mt-4">
-              <div className="grid gap-2">
-                <Label htmlFor="email-magic">メールアドレス</Label>
-                <Input
-                  id="email-magic"
-                  type="email"
-                  placeholder="your@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="w-full"
-                />
-              </div>
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "送信中..." : "認証メールを送信"}
-              </Button>
-            </form>
-          </TabsContent>
-        </Tabs>
-      </CardContent>
-    </Card>
+                <div className="grid gap-2">
+                  <Label htmlFor="password">パスワード</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="w-full"
+                    disabled={isLoading}
+                  />
+                  <div className="text-right">
+                    <button
+                      type="button"
+                      onClick={handleForgotPassword}
+                      className="text-xs text-blue-600 hover:text-blue-800"
+                      disabled={isLoading}
+                    >
+                      パスワードをお忘れの方はこちら
+                    </button>
+                  </div>
+                </div>
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "ログイン中..." : "ログイン"}
+                </Button>
+              </form>
+            </TabsContent>
+            <TabsContent value="magic">
+              <form onSubmit={handleMagicLinkSubmit} className="space-y-4 mt-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="email-magic">メールアドレス</Label>
+                  <Input
+                    id="email-magic"
+                    type="email"
+                    placeholder="your@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="w-full"
+                    disabled={isLoading}
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "送信中..." : "認証メールを送信"}
+                </Button>
+              </form>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+    </>
   )
 }

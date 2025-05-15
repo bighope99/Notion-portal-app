@@ -52,7 +52,7 @@ export default function ScheduleArchiveTab({
     <Card>
       <CardHeader>
         <CardTitle>予定とアーカイブ</CardTitle>
-        <CardDescription>セミナーやコンサルテーションの予定とアーカイブを確認します</CardDescription>
+        <CardDescription>セミナーや個人コンサル枠の予定とアーカイブを確認します</CardDescription>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="schedules" className="w-full">
@@ -71,41 +71,41 @@ export default function ScheduleArchiveTab({
               </div>
 
               <div className="mt-8">
-                <h3 className="text-xl font-medium mb-2">個人コンサルテーション（予約可能）</h3>
+                <h3 className="text-xl font-medium mb-2">個人コンサル空き枠（予約可能）</h3>
+                {/* 予約済み予定の表示 */}
+                {userReservedSchedules.length > 0 && (
+                  <div className="mt-4">
+                    <h4 className="text-sm font-medium text-gray-600 mb-2">あなたの予約済み予定</h4>
+                    <div className="space-y-2">
+                      {userReservedSchedules.map((schedule) => (
+                        <div key={schedule.id} className="p-2 rounded-md bg-purple-50 border border-purple-100 text-sm">
+                          <div className="font-medium">{schedule.name}</div>
+                          <div className="text-xs text-gray-600">
+                            {schedule.dateRange?.start &&
+                              format(parseISO(schedule.dateRange.start), "yyyy年MM月dd日 HH:mm", { locale: ja })}
+                            {schedule.instructor && ` (講師: ${schedule.instructor})`}
+                          </div>
+                          {schedule.url && (
+                            <a
+                              href={schedule.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center text-blue-600 hover:text-blue-800 text-xs mt-1"
+                            >
+                              <ExternalLink className="h-3 w-3 mr-1" />
+                              ミーティングに参加
+                            </a>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div className="w-full overflow-x-auto">
                   <ScheduleCalendar schedules={personalConsultations} />
                 </div>
               </div>
 
-              {/* 予約済み予定の表示 */}
-              {userReservedSchedules.length > 0 && (
-                <div className="mt-4">
-                  <h4 className="text-sm font-medium text-gray-600 mb-2">あなたの予約済み予定</h4>
-                  <div className="space-y-2">
-                    {userReservedSchedules.map((schedule) => (
-                      <div key={schedule.id} className="p-2 rounded-md bg-purple-50 border border-purple-100 text-sm">
-                        <div className="font-medium">{schedule.name}</div>
-                        <div className="text-xs text-gray-600">
-                          {schedule.dateRange?.start &&
-                            format(parseISO(schedule.dateRange.start), "yyyy年MM月dd日 HH:mm", { locale: ja })}
-                          {schedule.instructor && ` (講師: ${schedule.instructor})`}
-                        </div>
-                        {schedule.url && (
-                          <a
-                            href={schedule.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center text-blue-600 hover:text-blue-800 text-xs mt-1"
-                          >
-                            <ExternalLink className="h-3 w-3 mr-1" />
-                            ミーティングに参加
-                          </a>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           </TabsContent>
 

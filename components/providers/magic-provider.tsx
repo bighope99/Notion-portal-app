@@ -5,6 +5,7 @@ import type React from "react"
 import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { checkLoginStatus } from "@/lib/magic-client"
+import { LoadingOverlay } from "@/components/ui/loading-overlay"
 
 export default function MagicProvider({
   children,
@@ -48,11 +49,7 @@ export default function MagicProvider({
 
   if (isLoading) {
     // ローディング中の表示
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-gray-900"></div>
-      </div>
-    )
+    return <LoadingOverlay />
   }
 
   return <>{children}</>

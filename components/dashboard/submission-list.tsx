@@ -48,14 +48,33 @@ export default function SubmissionList({ submissions: initialSubmissions, studen
         throw new Error("学生IDが無効です")
       }
 
-      const success = await addSubmission(studentId, title, url)
+      // URLのバリデーション
+      let validUrl = url
+      try {
+        // URLが有効かチェック
+        new URL(url)
+      } catch (error) {
+        // URLが無効な場合、httpをつけて再試行
+        if (!url.startsWith("http://") && !url.startsWith("https://")) {
+          validUrl = `https://${url}`
+          try {
+            new URL(validUrl)
+          } catch (error) {
+            throw new Error("無効なURLです")
+          }
+        } else {
+          throw new Error("無効なURLです")
+        }
+      }
+
+      const success = await addSubmission(studentId, title, validUrl)
 
       if (success) {
         const newSubmission: Submission = {
           id: Date.now().toString(), // 一時的なID
           name: title,
           studentId,
-          url,
+          url: validUrl,
           submittedAt: new Date().toISOString(),
         }
 
@@ -107,12 +126,13 @@ export default function SubmissionList({ submissions: initialSubmissions, studen
                   <Label htmlFor="url">URL</Label>
                   <Input
                     id="url"
-                    type="url"
+                    type="text"
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
                     placeholder="https://"
                     required
                   />
+                  <p className="text-xs text-gray-500">例: https://example.com/my-submission</p>
                 </div>
               </div>
               <DialogFooter>
@@ -149,15 +169,17 @@ export default function SubmissionList({ submissions: initialSubmissions, studen
                   </p>
                 )}
               </div>
-              <a
-                href={submission.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 hover:text-blue-800 flex items-center"
-              >
-                <ExternalLink className="h-4 w-4 mr-1" />
-                開く
-              </a>
+              {submission.url && (
+                <a
+                  href={submission.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:text-blue-800 flex items-center"
+                >
+                  <ExternalLink className="h-4 w-4 mr-1" />
+                  開く
+                </a>
+              )}
             </div>
           ))}
         </div>

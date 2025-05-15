@@ -1,6 +1,7 @@
 "use server"
 
 import { Client } from "@notionhq/client"
+import { sendReservationEmails } from "./reservation-email" // 追加
 
 // Notion APIクライアントの初期化
 const notion = new Client({
@@ -384,7 +385,7 @@ export async function getSchedules(): Promise<{
 
       // 予約情報を取得
       const reservationName = getPropertyValue(properties, "予約名前", "rich_text")
-      const reservationEmail = getPropertyValue(properties, "予約メアド", "rich_text")
+      const reservationEmail = getPropertyValue(properties, "予約メアド", "email")
       const isReserved = !!(reservationName && reservationEmail)
 
       return {
@@ -492,6 +493,7 @@ export async function getUserReservedSchedules(userEmail: string): Promise<Sched
 // 個人コンサルテーションを予約
 export async function reserveConsultation(scheduleId: string, name: string, email: string): Promise<boolean> {
   try {
+    // Notionデータベースの更新
     await notion.pages.update({
       page_id: scheduleId,
       properties: {
@@ -509,6 +511,35 @@ export async function reserveConsultation(scheduleId: string, name: string, emai
         },
       },
     })
+
+    // 予約した予定の詳細を取得
+    const response = await notion.pages.retrieve({
+      page_id: scheduleId,
+    })
+
+    const properties = response.properties as any
+    const scheduleName = getPropertyValue(properties, "名前", "title")
+    const dateRange = getPropertyValue(properties, "実施日", "date_range")
+    const instructor = getPropertyValue(properties, "講師", "rich_text")
+
+    // 日付をフォーマット
+    let formattedDate = ""
+    if (dateRange && dateRange.start) {
+      try {
+        const startDate = new Date(dateRange.start)
+        formattedDate = `${startDate.getFullYear()}年${startDate.getMonth() + 1}月${startDate.getDate()}日 ${startDate.getHours()}:${String(startDate.getMinutes()).padStart(2, "0")}`
+
+        if (dateRange.end) {
+          const endDate = new Date(dateRange.end)
+          formattedDate += ` - ${endDate.getHours()}:${String(endDate.getMinutes()).padStart(2, "0")}`
+        }
+      } catch (error) {
+        console.error("Date formatting error:", error)
+      }
+    }
+
+    // メール送信処理を呼び出す
+    await sendReservationEmails(name, email, scheduleName, formattedDate, instructor)
 
     return true
   } catch (error) {

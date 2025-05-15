@@ -2,10 +2,12 @@
 
 import { useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
-import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { LogOut, User } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { LoadingOverlay } from "@/components/ui/loading-overlay"
+import { RulesDialog } from "./rules-dialog"
+import { useToast } from "@/hooks/use-toast"
 
 interface DashboardHeaderProps {
   name: string
@@ -15,6 +17,8 @@ export default function DashboardHeader({ name }: DashboardHeaderProps) {
   const router = useRouter()
   const pathname = usePathname()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const [isNavigating, setIsNavigating] = useState(false)
+  const { toast } = useToast()
 
   const handleLogout = async () => {
     setIsLoggingOut(true)
@@ -25,51 +29,81 @@ export default function DashboardHeader({ name }: DashboardHeaderProps) {
       })
 
       if (response.ok) {
-        router.push("/login")
-        router.refresh() // セッション状態を更新
+        // ログアウト成功時の処理
+        toast({
+          title: "ログアウト成功",
+          description: "正常にログアウトしました",
+        })
+
+        // 少し遅延を入れてからリダイレクト
+        setTimeout(() => {
+          // 強制的にページをリロードしてからリダイレクト
+          window.location.href = "/login"
+        }, 500)
+      } else {
+        throw new Error("ログアウトに失敗しました")
       }
     } catch (error) {
       console.error("Logout failed:", error)
-    } finally {
+      toast({
+        title: "エラー",
+        description: "ログアウトに失敗しました",
+        variant: "destructive",
+      })
       setIsLoggingOut(false)
     }
   }
 
-  return (
-    <div className="flex flex-col space-y-4 md:space-y-0 md:flex-row md:items-center md:justify-between">
-      <div>
-        <h1 className="text-3xl font-bold">学習ポータル</h1>
-        <p className="text-gray-600">ようこそ、{name}さん</p>
-      </div>
+  const handleNavigation = (path: string) => {
+    if (pathname !== path) {
+      setIsNavigating(true)
+      router.push(path)
+    }
+  }
 
-      <div className="flex items-center space-x-4">
-        <div className="flex space-x-2">
-          <Link href="/dashboard/schedule">
-            <Button variant={pathname === "/dashboard/schedule" ? "default" : "outline"} size="sm">
-              予定
-            </Button>
-          </Link>
-          <Link href="/dashboard/task">
-            <Button variant={pathname === "/dashboard/task" ? "default" : "outline"} size="sm">
-              タスク
-            </Button>
-          </Link>
+  return (
+    <>
+      {(isLoggingOut || isNavigating) && <LoadingOverlay />}
+      <div className="flex flex-col space-y-4 md:space-y-0 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">GROWSポータル</h1>
+          <p className="text-gray-600">ようこそ、{name}さん</p>
         </div>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="rounded-full">
-              <User className="h-5 w-5" />
+        <div className="flex items-center space-x-4">
+          <div className="flex space-x-2">
+            <Button
+              variant={pathname === "/dashboard/schedule" ? "default" : "outline"}
+              size="sm"
+              onClick={() => handleNavigation("/dashboard/schedule")}
+            >
+              予定
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={handleLogout} disabled={isLoggingOut}>
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>{isLoggingOut ? "ログアウト中..." : "ログアウト"}</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+            <Button
+              variant={pathname === "/dashboard/task" ? "default" : "outline"}
+              size="sm"
+              onClick={() => handleNavigation("/dashboard/task")}
+            >
+              タスク
+            </Button>
+            <RulesDialog />
+          </div>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="rounded-full">
+                <User className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleLogout} disabled={isLoggingOut}>
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>{isLoggingOut ? "ログアウト中..." : "ログアウト"}</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
-    </div>
+    </>
   )
 }

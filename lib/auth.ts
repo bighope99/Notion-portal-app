@@ -175,7 +175,16 @@ export async function getSession() {
 // ログアウト処理
 export async function logout() {
   const cookieStore = cookies()
-  cookieStore.delete("auth_token")
+
+  // 確実にCookieを削除
+  cookieStore.delete("auth_token", {
+    path: "/",
+    // 他のオプションも追加して確実に削除
+    secure: process.env.NODE_ENV === "production",
+    httpOnly: true,
+  })
+
+  return true
 }
 
 // コールバック処理

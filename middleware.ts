@@ -10,9 +10,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url))
   }
 
-  // ログイン済みの場合、ログインページにアクセスするとダッシュボードにリダイレクト
+  // ログイン済みの場合、ログインページにアクセスすると予定ページにリダイレクト
   if ((pathname === "/login" || pathname === "/") && authToken) {
-    return NextResponse.redirect(new URL("/dashboard", request.url))
+    return NextResponse.redirect(new URL("/dashboard/schedule", request.url))
   }
 
   return NextResponse.next()

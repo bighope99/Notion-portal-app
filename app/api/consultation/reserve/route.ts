@@ -28,6 +28,7 @@ export async function POST(request: Request) {
     }
   } catch (error) {
     console.error("Reserve consultation API error:", error)
-    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 })
+    const errorMessage = error instanceof Error ? error.message : "Internal server error"
+    return NextResponse.json({ success: false, error: errorMessage }, { status: 500 })
   }
 }

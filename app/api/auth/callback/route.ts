@@ -18,6 +18,7 @@ export async function GET(request: Request) {
       if (!result.hasPassword || isReset) {
         return NextResponse.redirect(new URL("/dashboard/setup-password", request.url))
       }
+      // それ以外は予定ページにリダイレクト
       return NextResponse.redirect(new URL("/dashboard/schedule", request.url))
     } else {
       return NextResponse.redirect(new URL("/login", request.url))

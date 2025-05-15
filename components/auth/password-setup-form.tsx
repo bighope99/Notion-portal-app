@@ -93,7 +93,7 @@ export default function PasswordSetupForm() {
             <Alert className="mb-4 bg-green-50 border-green-200">
               <CheckCircle className="h-4 w-4 text-green-500" />
               <AlertDescription className="text-green-700">
-                パスワードが設定されました。ダッシュボードにリダイレクトします...
+                パスワードが設定されました。予定ページにリダイレクトします...
               </AlertDescription>
             </Alert>
           )}

@@ -189,7 +189,7 @@ export default function ScheduleCalendar({ schedules }: ScheduleCalendarProps) {
       if (data.success) {
         toast({
           title: "予約完了",
-          description: "個人コンサルテーションの予約が完了しました",
+          description: "個人コンサルの予約が完了しました",
         })
         // ダイアログを閉じる
         setIsReservationDialogOpen(false)
@@ -372,13 +372,13 @@ export default function ScheduleCalendar({ schedules }: ScheduleCalendarProps) {
       <AlertDialog open={isReservationDialogOpen} onOpenChange={setIsReservationDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>個人コンサルテーションの予約</AlertDialogTitle>
+            <AlertDialogTitle>個人コンサルの予約</AlertDialogTitle>
             <AlertDialogDescription>
               {selectedSchedule && selectedSchedule.reservationName ? (
                 <div className="text-red-500">この予定はすでに予約されています。別の日時を選択してください。</div>
               ) : (
                 <>
-                  <div className="mb-2">以下の個人コンサルテーションを予約しますか？</div>
+                  <div className="mb-2">以下の個人コンサルを予約しますか？</div>
                   <div className="bg-gray-50 p-3 rounded-md">
                     <div>
                       <strong>日時:</strong>{" "}

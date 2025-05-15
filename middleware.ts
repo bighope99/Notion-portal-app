@@ -4,19 +4,11 @@ import type { NextRequest } from "next/server"
 export function middleware(request: NextRequest) {
   const authToken = request.cookies.get("auth_token")
   const { pathname } = request.nextUrl
-  const isLogoutRequest = request.nextUrl.searchParams.has("logout")
-
-  // ログアウトリクエストの場合は処理をスキップ
-  if (isLogoutRequest && pathname === "/login") {
-    return NextResponse.next()
-  }
 
   // ダッシュボードへのアクセスはログインが必要
   if (pathname.startsWith("/dashboard") && !authToken) {
-    // ログインページにリダイレクトする際にクエリパラメータを追加して、ログアウト処理を促す
-    const loginUrl = new URL("/login", request.url)
-    loginUrl.searchParams.set("logout", "true")
-    return NextResponse.redirect(loginUrl)
+    // ログアウト処理を促すパラメータを使わず、直接ログインページにリダイレクト
+    return NextResponse.redirect(new URL("/login", request.url))
   }
 
   // ログイン済みの場合、ログインページにアクセスすると予定ページにリダイレクト

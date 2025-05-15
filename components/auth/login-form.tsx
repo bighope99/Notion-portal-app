@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,6 +19,34 @@ export default function LoginForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
+
+  // ページロード時に古いセッションをクリアする
+  useEffect(() => {
+    // クライアントサイドでCookieをチェック
+    const checkAndClearSession = async () => {
+      try {
+        // auth_tokenのCookieが存在するが無効な場合、ログアウト処理を実行
+        const authCookie = document.cookie.split(";").find((c) => c.trim().startsWith("auth_token="))
+        if (authCookie) {
+          // セッションの有効性をチェック（オプション）
+          const response = await fetch("/api/auth/check-session")
+          const data = await response.json()
+
+          if (!data.valid) {
+            // セッションが無効な場合、ログアウトAPIを呼び出す
+            await fetch("/api/auth/logout", { method: "POST" })
+
+            // クライアントサイドでもCookieを削除
+            document.cookie = "auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT"
+          }
+        }
+      } catch (error) {
+        console.error("Session check error:", error)
+      }
+    }
+
+    checkAndClearSession()
+  }, [])
 
   const handleMagicLinkSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

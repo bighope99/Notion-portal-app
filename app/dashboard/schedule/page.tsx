@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation"
-import { getSession, logout } from "@/lib/auth"
+import { getSession } from "@/lib/auth"
 import { getSchedules } from "@/lib/notion"
 import DashboardHeader from "@/components/dashboard/dashboard-header"
 import ScheduleArchiveTab from "@/components/dashboard/schedule-archive-tab"
@@ -9,9 +9,8 @@ export default async function SchedulePage() {
 
   if (!session) {
     // 無効なセッションを検出した場合、ログインページにリダイレクト
-    // Server Actionを使用してCookieを削除
-    await logout()
-    redirect("/login?logout=true")
+    // Server Actionを使わずに単純にリダイレクト
+    redirect("/login")
   }
 
   // 予定データを取得

@@ -16,13 +16,16 @@ export default async function SchedulePage() {
 
   // 予定データを取得
   let scheduleData
-  let fetchError = false
+  let fetchError = null
+  let errorDetails = ""
 
   try {
     scheduleData = await getSchedules()
   } catch (error) {
     console.error("Error fetching schedules:", error)
-    fetchError = true
+    fetchError = error
+    errorDetails = error instanceof Error ? error.message : "Unknown error"
+
     // エラー時のフォールバックデータ
     scheduleData = {
       regularSchedules: [],
@@ -39,7 +42,9 @@ export default async function SchedulePage() {
         <Alert variant="destructive" className="my-4">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            予定データの取得中にエラーが発生しました。しばらく経ってから再度お試しください。
+            予定データの取得中にエラーが発生しました: {errorDetails}
+            <br />
+            しばらく経ってから再度お試しいただくか、管理者にお問い合わせください。
           </AlertDescription>
         </Alert>
       )}

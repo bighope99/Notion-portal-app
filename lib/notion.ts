@@ -1,21 +1,31 @@
 "use server"
 
 import { Client } from "@notionhq/client"
-import { sendReservationEmails } from "./reservation-email" // 追加
+import { sendReservationEmails } from "./reservation-email"
 
-// Notion APIクライアントの初期化
+// Notion APIクライアントの初期化（改善版）
 let notion: Client | null = null
 
-try {
-  if (process.env.NOTION_API_KEY) {
+// Notionクライアントの初期化関数
+function initNotionClient() {
+  if (notion) return notion
+
+  try {
+    if (!process.env.NOTION_API_KEY) {
+      throw new Error("NOTION_API_KEY is not set")
+    }
+
     notion = new Client({
       auth: process.env.NOTION_API_KEY,
+      // タイムアウト設定を追加（15秒）
+      timeoutMs: 15000,
     })
-  } else {
-    console.error("NOTION_API_KEY is not set")
+
+    return notion
+  } catch (error) {
+    console.error("Failed to initialize Notion client:", error)
+    return null
   }
-} catch (error) {
-  console.error("Failed to initialize Notion client:", error)
 }
 
 // データベースID
@@ -376,58 +386,85 @@ export async function addSubmission(studentId: string, name: string, url: string
   }
 }
 
-// 予定を取得（完了していないもののみ）
+// 予定を取得（完了していないもののみ）- エラーハンドリング強化版
 export async function getSchedules(): Promise<{
   regularSchedules: Schedule[]
   personalConsultations: Schedule[]
   archives: Schedule[]
 }> {
+  // 開始時間を記録（パフォーマンス測定用）
+  const startTime = Date.now()
+
   try {
-    // Notionクライアントが正しく初期化されているか確認
-    if (!notion) {
-      console.error("Notion client is not initialized")
-      return {
-        regularSchedules: [],
-        personalConsultations: [],
-        archives: [],
-      }
+    // Notionクライアントを取得
+    const notionClient = initNotionClient()
+
+    if (!notionClient) {
+      throw new Error("Notion client initialization failed")
     }
 
     // APIキーが設定されているか確認
     if (!process.env.NOTION_API_KEY) {
-      console.error("NOTION_API_KEY is not set")
-      return {
-        regularSchedules: [],
-        personalConsultations: [],
-        archives: [],
-      }
+      throw new Error("NOTION_API_KEY is not set")
     }
 
     // データベースIDが有効か確認
     if (!SCHEDULES_DB_ID) {
-      console.error("SCHEDULES_DB_ID is not valid")
-      return {
-        regularSchedules: [],
-        personalConsultations: [],
-        archives: [],
+      throw new Error("SCHEDULES_DB_ID is not valid")
+    }
+
+    // API呼び出しを試行
+    let response
+    try {
+      response = await notionClient.databases.query({
+        database_id: SCHEDULES_DB_ID,
+        filter: {
+          property: "完了",
+          checkbox: {
+            equals: false,
+          },
+        },
+        sorts: [
+          {
+            property: "実施日",
+            direction: "ascending",
+          },
+        ],
+      })
+    } catch (apiError: any) {
+      // API呼び出しエラーをより詳細に記録
+      console.error(`Notion API error: ${apiError.message}`)
+      console.error(`Status: ${apiError.status}`)
+      console.error(`Code: ${apiError.code}`)
+
+      // リトライ可能なエラーの場合は一度だけ再試行
+      if (apiError.status === 429 || apiError.status === 500 || apiError.status === 503) {
+        console.log("Retrying Notion API request after 1 second...")
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+
+        response = await notionClient.databases.query({
+          database_id: SCHEDULES_DB_ID,
+          filter: {
+            property: "完了",
+            checkbox: {
+              equals: false,
+            },
+          },
+          sorts: [
+            {
+              property: "実施日",
+              direction: "ascending",
+            },
+          ],
+        })
+      } else {
+        throw apiError
       }
     }
 
-    const response = await notion.databases.query({
-      database_id: SCHEDULES_DB_ID,
-      filter: {
-        property: "完了",
-        checkbox: {
-          equals: false,
-        },
-      },
-      sorts: [
-        {
-          property: "実施日",
-          direction: "ascending",
-        },
-      ],
-    })
+    // パフォーマンスログ
+    const duration = Date.now() - startTime
+    console.log(`Notion API query completed in ${duration}ms`)
 
     const schedules = response.results.map((page) => {
       const properties = page.properties as any
@@ -485,12 +522,8 @@ export async function getSchedules(): Promise<{
       console.error("Error stack:", error.stack)
     }
 
-    // エラーが発生した場合は空の配列を返す
-    return {
-      regularSchedules: [],
-      personalConsultations: [],
-      archives: [],
-    }
+    // エラーを再スローして呼び出し元で処理できるようにする
+    throw new Error(`Failed to fetch schedules: ${error instanceof Error ? error.message : "Unknown error"}`)
   }
 }
 

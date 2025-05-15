@@ -50,12 +50,12 @@ export default function ScheduleArchiveTab({
   }, [userEmail])
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="border-0 shadow-none">
+      <CardHeader className="px-0 sm:px-2">
         <CardTitle>予定とアーカイブ</CardTitle>
         <CardDescription>セミナーや個人コンサル枠の予定とアーカイブを確認します</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-0 sm:p-2">
         <Tabs defaultValue="schedules" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="schedules">予定</TabsTrigger>

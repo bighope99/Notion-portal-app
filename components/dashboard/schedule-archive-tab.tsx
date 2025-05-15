@@ -80,7 +80,12 @@ export default function ScheduleArchiveTab({
                     <Alert variant="info" className="mt-0 bg-blue-50 border-blue-200 text-xs">
                       <Info className="h-3 w-3 text-blue-500" />
                       <AlertDescription className="text-blue-700">
-                        <p className="mb-0">※面談前日までにアンケート提出必須<br />月最低1回は面談日を設けましょう（最大3回まで）</p>
+                        {/* pタグの入れ子を解消 */}
+                        <span className="block mb-0">
+                          ※面談前日までにアンケート提出必須
+                          <br />
+                          月最低1回は面談日を設けましょう（最大3回まで）
+                        </span>
                         <a
                           href="https://forms.gle/XFRC8bDdZMrC5MNk9"
                           target="_blank"
@@ -100,11 +105,12 @@ export default function ScheduleArchiveTab({
                   <Alert variant="info" className="bg-blue-50 border-blue-200">
                     <Info className="h-4 w-4 text-blue-500" />
                     <AlertDescription className="text-blue-700">
-                      <p className="mb-1">
+                      {/* pタグの入れ子を解消 */}
+                      <span className="block mb-1">
                         ※ご予約をされた際は、<strong>必ず面談予定日の前日までに</strong>
                         アンケートフォームの送信をお願いします。
-                      </p>
-                      <p className="mb-1">月最低1回は面談日を設けましょう！（最大3回まで）</p>
+                      </span>
+                      <span className="block mb-1">月最低1回は面談日を設けましょう！（最大3回まで）</span>
                       <a
                         href="https://forms.gle/XFRC8bDdZMrC5MNk9"
                         target="_blank"

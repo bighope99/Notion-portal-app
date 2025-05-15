@@ -48,6 +48,9 @@ export interface Student {
   personalLink1?: string | null // 個人リンク1
   personalLink2?: string | null // 個人リンク2
   personalLink3?: string | null // 個人リンク3
+  linkName1?: string | null // 個人リンク1の名前
+  linkName2?: string | null // 個人リンク2の名前
+  linkName3?: string | null // 個人リンク3の名前
 }
 
 // タスクの型定義
@@ -195,6 +198,9 @@ export async function getStudentByEmail(email: string): Promise<Student | null> 
       personalLink1: getPropertyValue(properties, "個人リンク1", "url"),
       personalLink2: getPropertyValue(properties, "個人リンク2", "url"),
       personalLink3: getPropertyValue(properties, "個人リンク3", "url"),
+      linkName1: getPropertyValue(properties, "リンク名1", "rich_text"),
+      linkName2: getPropertyValue(properties, "リンク名2", "rich_text"),
+      linkName3: getPropertyValue(properties, "リンク名3", "rich_text"),
     }
 
     return student
@@ -272,44 +278,86 @@ export async function getPasswordHashByEmail(email: string): Promise<string | nu
   }
 }
 
-// 学生IDに関連するタスクを取得
+// 学生IDに関連するタスクを取得 - エラーハンドリング強化版
 export async function getTasksByStudentId(studentId: string): Promise<Task[]> {
-  try {
-    // studentIdが空の場合は空の配列を返す
-    if (!studentId) {
-      return []
-    }
+  // リトライ回数を設定
+  const maxRetries = 2
+  let retryCount = 0
 
-    // Notionクライアントを初期化
-    const notion = initNotionClient()
-    if (!notion) {
-      throw new Error("Notion client initialization failed")
-    }
-
-    const response = await notion.databases.query({
-      database_id: TASKS_DB_ID,
-      filter: {
-        property: "誰タスク",
-        relation: {
-          contains: studentId,
-        },
-      },
-    })
-
-    return response.results.map((page) => {
-      const properties = page.properties as any
-
-      return {
-        id: page.id,
-        name: getPropertyValue(properties, "名前", "title"),
-        assignedTo: studentId, // リレーションの場合は学生IDを設定
-        completed: getPropertyValue(properties, "完了", "checkbox"),
-      }
-    })
-  } catch (error) {
-    console.error("Failed to fetch tasks:", error)
+  // studentIdが空の場合は空の配列を返す
+  if (!studentId) {
+    console.log("Empty studentId provided to getTasksByStudentId, returning empty array")
     return []
   }
+
+  while (retryCount <= maxRetries) {
+    try {
+      // Notionクライアントを初期化
+      const notion = initNotionClient()
+      if (!notion) {
+        throw new Error("Notion client initialization failed")
+      }
+
+      // APIキーが設定されているか確認
+      if (!process.env.NOTION_API_KEY) {
+        throw new Error("NOTION_API_KEY is not set")
+      }
+
+      // データベースIDが有効か確認
+      if (!TASKS_DB_ID) {
+        throw new Error("TASKS_DB_ID is not valid")
+      }
+
+      console.log(`Fetching tasks for studentId: ${studentId}, attempt ${retryCount + 1}`)
+
+      // API呼び出しを試行
+      const response = await notion.databases.query({
+        database_id: TASKS_DB_ID,
+        filter: {
+          property: "誰タスク",
+          relation: {
+            contains: studentId,
+          },
+        },
+      })
+
+      console.log(`Successfully fetched ${response.results.length} tasks`)
+
+      return response.results.map((page) => {
+        const properties = page.properties as any
+
+        return {
+          id: page.id,
+          name: getPropertyValue(properties, "名前", "title"),
+          assignedTo: studentId, // リレーションの場合は学生IDを設定
+          completed: getPropertyValue(properties, "完了", "checkbox"),
+        }
+      })
+    } catch (error: any) {
+      // API呼び出しエラーをより詳細に記録
+      console.error(`Notion API error in getTasksByStudentId (attempt ${retryCount + 1}):`, error)
+
+      if (error.status) {
+        console.error(`Status: ${error.status}, Code: ${error.code}`)
+      }
+
+      // 最後のリトライでも失敗した場合はエラーをスロー
+      if (retryCount === maxRetries) {
+        console.error("All retry attempts failed")
+        // 空の配列を返す代わりにエラーをスロー
+        throw new Error(`Failed to fetch tasks: ${error.message || "Unknown error"}`)
+      }
+
+      // リトライ可能なエラーの場合は待機してリトライ
+      const waitTime = Math.pow(2, retryCount) * 1000 // 指数バックオフ
+      console.log(`Retrying in ${waitTime}ms...`)
+      await new Promise((resolve) => setTimeout(resolve, waitTime))
+      retryCount++
+    }
+  }
+
+  // ここには到達しないはずだが、TypeScriptの型チェックを満たすために空の配列を返す
+  return []
 }
 
 // タスクの完了状態を更新
@@ -337,52 +385,94 @@ export async function updateTaskStatus(taskId: string, completed: boolean): Prom
   }
 }
 
-// 学生IDに関連する提出物を取得
+// 学生IDに関連する提出物を取得 - エラーハンドリング強化版
 export async function getSubmissionsByStudentId(studentId: string): Promise<Submission[]> {
-  try {
-    // studentIdが空の場合は空の配列を返す
-    if (!studentId) {
-      return []
-    }
+  // リトライ回数を設定
+  const maxRetries = 2
+  let retryCount = 0
 
-    // Notionクライアントを初期化
-    const notion = initNotionClient()
-    if (!notion) {
-      throw new Error("Notion client initialization failed")
-    }
-
-    const response = await notion.databases.query({
-      database_id: SUBMISSIONS_DB_ID,
-      filter: {
-        property: "個人ページ",
-        relation: {
-          contains: studentId,
-        },
-      },
-      sorts: [
-        {
-          timestamp: "created_time",
-          direction: "descending",
-        },
-      ],
-    })
-
-    return response.results.map((page) => {
-      const properties = page.properties as any
-      const createdTime = page.created_time
-
-      return {
-        id: page.id,
-        name: getPropertyValue(properties, "名前", "title"),
-        studentId, // 学生IDを設定
-        url: getPropertyValue(properties, "URL", "url"),
-        submittedAt: createdTime || "",
-      }
-    })
-  } catch (error) {
-    console.error("Failed to fetch submissions:", error)
+  // studentIdが空の場合は空の配列を返す
+  if (!studentId) {
+    console.log("Empty studentId provided to getSubmissionsByStudentId, returning empty array")
     return []
   }
+
+  while (retryCount <= maxRetries) {
+    try {
+      // Notionクライアントを初期化
+      const notion = initNotionClient()
+      if (!notion) {
+        throw new Error("Notion client initialization failed")
+      }
+
+      // APIキーが設定されているか確認
+      if (!process.env.NOTION_API_KEY) {
+        throw new Error("NOTION_API_KEY is not set")
+      }
+
+      // データベースIDが有効か確認
+      if (!SUBMISSIONS_DB_ID) {
+        throw new Error("SUBMISSIONS_DB_ID is not valid")
+      }
+
+      console.log(`Fetching submissions for studentId: ${studentId}, attempt ${retryCount + 1}`)
+
+      // API呼び出しを試行
+      const response = await notion.databases.query({
+        database_id: SUBMISSIONS_DB_ID,
+        filter: {
+          property: "個人ページ",
+          relation: {
+            contains: studentId,
+          },
+        },
+        sorts: [
+          {
+            timestamp: "created_time",
+            direction: "descending",
+          },
+        ],
+      })
+
+      console.log(`Successfully fetched ${response.results.length} submissions`)
+
+      return response.results.map((page) => {
+        const properties = page.properties as any
+        const createdTime = page.created_time
+
+        return {
+          id: page.id,
+          name: getPropertyValue(properties, "名前", "title"),
+          studentId, // 学生IDを設定
+          url: getPropertyValue(properties, "URL", "url"),
+          submittedAt: createdTime || "",
+        }
+      })
+    } catch (error: any) {
+      // API呼び出しエラーをより詳細に記録
+      console.error(`Notion API error in getSubmissionsByStudentId (attempt ${retryCount + 1}):`, error)
+
+      if (error.status) {
+        console.error(`Status: ${error.status}, Code: ${error.code}`)
+      }
+
+      // 最後のリトライでも失敗した場合はエラーをスロー
+      if (retryCount === maxRetries) {
+        console.error("All retry attempts failed")
+        // 空の配列を返す代わりにエラーをスロー
+        throw new Error(`Failed to fetch submissions: ${error.message || "Unknown error"}`)
+      }
+
+      // リトライ可能なエラーの場合は待機してリトライ
+      const waitTime = Math.pow(2, retryCount) * 1000 // 指数バックオフ
+      console.log(`Retrying in ${waitTime}ms...`)
+      await new Promise((resolve) => setTimeout(resolve, waitTime))
+      retryCount++
+    }
+  }
+
+  // ここには到達しないはずだが、TypeScriptの型チェックを満たすために空の配列を返す
+  return []
 }
 
 // 提出物を追加

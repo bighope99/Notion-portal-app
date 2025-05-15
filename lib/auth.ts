@@ -140,8 +140,7 @@ export async function getSession() {
     const payload = await verifyToken(token)
 
     if (!payload?.email) {
-      // 無効なトークンの場合はCookieを削除
-      cookieStore.delete("auth_token", { path: "/" })
+      // 無効なトークンの場合はnullを返す
       return null
     }
 
@@ -149,14 +148,12 @@ export async function getSession() {
     const student = await getStudentByEmail(payload.email)
 
     if (!student) {
-      // 学生情報が見つからない場合はCookieを削除
-      cookieStore.delete("auth_token", { path: "/" })
+      // 学生情報が見つからない場合はnullを返す
       return null
     }
 
     if (student.isRetired) {
-      // 退会済みの場合はCookieを削除
-      cookieStore.delete("auth_token", { path: "/" })
+      // 退会済みの場合はnullを返す
       return null
     }
 
@@ -172,8 +169,7 @@ export async function getSession() {
     }
   } catch (error) {
     console.error("Session error:", error)
-    // エラーが発生した場合もCookieを削除
-    cookieStore.delete("auth_token", { path: "/" })
+    // エラーが発生した場合もnullを返す
     return null
   }
 }

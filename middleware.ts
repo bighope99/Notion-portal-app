@@ -4,6 +4,12 @@ import type { NextRequest } from "next/server"
 export function middleware(request: NextRequest) {
   const authToken = request.cookies.get("auth_token")
   const { pathname } = request.nextUrl
+  const isLogoutRequest = request.nextUrl.searchParams.has("logout")
+
+  // ログアウトリクエストの場合は処理をスキップ
+  if (isLogoutRequest && pathname === "/login") {
+    return NextResponse.next()
+  }
 
   // ダッシュボードへのアクセスはログインが必要
   if (pathname.startsWith("/dashboard") && !authToken) {

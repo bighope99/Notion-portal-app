@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation"
-import { getSession } from "@/lib/auth"
+import { getSession, logout } from "@/lib/auth"
 import { getTasksByStudentId, getSubmissionsByStudentId, updateLastViewedAt } from "@/lib/notion"
 import DashboardHeader from "@/components/dashboard/dashboard-header"
 import TaskSubmissionTab from "@/components/dashboard/task-submission-tab"
@@ -8,7 +8,10 @@ export default async function TaskPage() {
   const session = await getSession()
 
   if (!session) {
-    redirect("/login")
+    // 無効なセッションを検出した場合、ログインページにリダイレクト
+    // Server Actionを使用してCookieを削除
+    await logout()
+    redirect("/login?logout=true")
   }
 
   const studentId = session.user.id

@@ -1,11 +1,14 @@
 import { redirect } from "next/navigation"
-import { getSession } from "@/lib/auth"
+import { getSession, logout } from "@/lib/auth"
 
 export default async function DashboardPage() {
   const session = await getSession()
 
   if (!session) {
-    redirect("/login")
+    // 無効なセッションを検出した場合、ログインページにリダイレクト
+    // Server Actionを使用してCookieを削除
+    await logout()
+    redirect("/login?logout=true")
   }
 
   // 予定ページにリダイレクト

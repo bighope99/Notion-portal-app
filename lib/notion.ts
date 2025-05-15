@@ -4,9 +4,19 @@ import { Client } from "@notionhq/client"
 import { sendReservationEmails } from "./reservation-email" // 追加
 
 // Notion APIクライアントの初期化
-const notion = new Client({
-  auth: process.env.NOTION_API_KEY,
-})
+let notion: Client | null = null
+
+try {
+  if (process.env.NOTION_API_KEY) {
+    notion = new Client({
+      auth: process.env.NOTION_API_KEY,
+    })
+  } else {
+    console.error("NOTION_API_KEY is not set")
+  }
+} catch (error) {
+  console.error("Failed to initialize Notion client:", error)
+}
 
 // データベースID
 const STUDENTS_DB_ID = "1ed2676ffda281c8a29dcca751cc0bc2"
@@ -25,6 +35,9 @@ export interface Student {
   lastViewedAt: string | null
   passwordHash?: string | null
   isRetired?: boolean // 退会フラグ（存在しない場合は使用しない）
+  personalLink1?: string | null // 個人リンク1
+  personalLink2?: string | null // 個人リンク2
+  personalLink3?: string | null // 個人リンク3
 }
 
 // タスクの型定義
@@ -71,8 +84,17 @@ export interface Schedule {
 // Notionのプロパティから安全に値を取得するヘルパー関数
 function getPropertyValue(properties: any, propertyName: string, type: string): any {
   try {
+    if (!properties) {
+      console.warn(`Properties object is undefined or null when getting ${propertyName}`)
+      return null
+    }
+
     const property = properties[propertyName]
-    if (!property) return null
+    if (!property) {
+      // プロパティが存在しない場合は警告を出すが、エラーにはしない
+      console.warn(`Property ${propertyName} not found`)
+      return type === "multi_select" ? [] : null
+    }
 
     switch (type) {
       case "title":
@@ -95,7 +117,7 @@ function getPropertyValue(properties: any, propertyName: string, type: string): 
       case "select":
         return property.select?.name || null
       case "multi_select":
-        return property.multi_select?.map((item: any) => item.name) || null
+        return property.multi_select?.map((item: any) => item.name) || []
       case "url":
         return property.url || null
       case "relation":
@@ -109,6 +131,8 @@ function getPropertyValue(properties: any, propertyName: string, type: string): 
     }
   } catch (error) {
     console.error(`Error getting property ${propertyName}:`, error)
+    // エラーが発生した場合はデフォルト値を返す
+    if (type === "multi_select") return []
     return null
   }
 }
@@ -152,6 +176,9 @@ export async function getStudentByEmail(email: string): Promise<Student | null> 
       passwordHash: getPropertyValue(properties, "パスワード", "rich_text"),
       // isRetiredプロパティが存在する場合のみ使用
       ...(properties["退会"] ? { isRetired: getPropertyValue(properties, "退会", "checkbox") } : {}),
+      personalLink1: getPropertyValue(properties, "個人リンク1", "url"),
+      personalLink2: getPropertyValue(properties, "個人リンク2", "url"),
+      personalLink3: getPropertyValue(properties, "個人リンク3", "url"),
     }
 
     return student
@@ -356,6 +383,36 @@ export async function getSchedules(): Promise<{
   archives: Schedule[]
 }> {
   try {
+    // Notionクライアントが正しく初期化されているか確認
+    if (!notion) {
+      console.error("Notion client is not initialized")
+      return {
+        regularSchedules: [],
+        personalConsultations: [],
+        archives: [],
+      }
+    }
+
+    // APIキーが設定されているか確認
+    if (!process.env.NOTION_API_KEY) {
+      console.error("NOTION_API_KEY is not set")
+      return {
+        regularSchedules: [],
+        personalConsultations: [],
+        archives: [],
+      }
+    }
+
+    // データベースIDが有効か確認
+    if (!SCHEDULES_DB_ID) {
+      console.error("SCHEDULES_DB_ID is not valid")
+      return {
+        regularSchedules: [],
+        personalConsultations: [],
+        archives: [],
+      }
+    }
+
     const response = await notion.databases.query({
       database_id: SCHEDULES_DB_ID,
       filter: {
@@ -378,7 +435,7 @@ export async function getSchedules(): Promise<{
       const theme = getPropertyValue(properties, "講義テーマ", "multi_select")
 
       // 講義テーマが"個人コンサル"かどうかで判定
-      const isPersonalConsultation = theme.includes("個人コンサル")
+      const isPersonalConsultation = Array.isArray(theme) && theme.includes("個人コンサル")
 
       // 日付範囲（開始時間と終了時間）を取得
       const dateRange = getPropertyValue(properties, "実施日", "date_range")
@@ -421,7 +478,14 @@ export async function getSchedules(): Promise<{
       archives,
     }
   } catch (error) {
+    // より詳細なエラー情報をログに出力
     console.error("Failed to fetch schedules:", error)
+    if (error instanceof Error) {
+      console.error("Error message:", error.message)
+      console.error("Error stack:", error.stack)
+    }
+
+    // エラーが発生した場合は空の配列を返す
     return {
       regularSchedules: [],
       personalConsultations: [],

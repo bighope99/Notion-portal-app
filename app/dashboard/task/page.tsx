@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation"
 import { getSession } from "@/lib/auth"
-import { getTasksByStudentId, getSubmissionsByStudentId, updateLastViewedAt } from "@/lib/notion"
+import { getTasksByStudentId, getSubmissionsByStudentId, updateLastViewedAt, getStudentByEmail } from "@/lib/notion"
 import DashboardHeader from "@/components/dashboard/dashboard-header"
 import TaskSubmissionTab from "@/components/dashboard/task-submission-tab"
+import PersonalLinks from "@/components/dashboard/personal-links"
 
 export default async function TaskPage() {
   const session = await getSession()
@@ -26,6 +27,9 @@ export default async function TaskPage() {
     personalPageId ? getSubmissionsByStudentId(personalPageId) : [],
   ])
 
+  // 学生情報を取得して個人リンクを取得
+  const student = await getStudentByEmail(session.user.email)
+
   return (
     <div className="container mx-auto px-4 py-8">
       <DashboardHeader name={session.user.name} />
@@ -33,6 +37,14 @@ export default async function TaskPage() {
       <div className="mt-6">
         <TaskSubmissionTab tasks={tasks} submissions={submissions} studentId={personalPageId} />
       </div>
+
+      {student && (
+        <PersonalLinks
+          personalLink1={student.personalLink1}
+          personalLink2={student.personalLink2}
+          personalLink3={student.personalLink3}
+        />
+      )}
     </div>
   )
 }

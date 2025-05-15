@@ -1,7 +1,7 @@
 "use client"
 import { format, parseISO } from "date-fns"
 import { ja } from "date-fns/locale"
-import { ExternalLink, Calendar, User } from "lucide-react"
+import { ExternalLink, Calendar, User, Lock } from "lucide-react"
 import type { Schedule, DateRange } from "@/lib/notion"
 
 interface ArchiveListProps {
@@ -55,6 +55,15 @@ export default function ArchiveList({ archives }: ArchiveListProps) {
                 <div className="flex items-center">
                   <User className="h-4 w-4 mr-2" />
                   <span>講師: {archive.instructor}</span>
+                </div>
+              )}
+
+              {archive.password && (
+                <div className="flex items-center">
+                  <Lock className="h-4 w-4 mr-2" />
+                  <span>
+                    パスワード: <span className="font-mono">{archive.password}</span>
+                  </span>
                 </div>
               )}
             </div>

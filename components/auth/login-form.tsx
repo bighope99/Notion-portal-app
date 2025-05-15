@@ -122,9 +122,9 @@ export default function LoginForm() {
         if (data.error === "user_not_found") {
           throw new Error("登録されていないメールアドレスです")
         } else if (data.error === "invalid_password") {
-          throw new Error("パスワードが正しくありません")
+          throw new Error("メールアドレスまたはパスワードが正しくありません")
         } else {
-          throw new Error("ログインに失敗しました")
+          throw new Error("ログインに失敗しました。入力情報を確認してください")
         }
       }
     } catch (err: any) {

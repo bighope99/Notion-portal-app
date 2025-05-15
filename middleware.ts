@@ -7,7 +7,10 @@ export function middleware(request: NextRequest) {
 
   // ダッシュボードへのアクセスはログインが必要
   if (pathname.startsWith("/dashboard") && !authToken) {
-    return NextResponse.redirect(new URL("/login", request.url))
+    // ログインページにリダイレクトする際にクエリパラメータを追加して、ログアウト処理を促す
+    const loginUrl = new URL("/login", request.url)
+    loginUrl.searchParams.set("logout", "true")
+    return NextResponse.redirect(loginUrl)
   }
 
   // ログイン済みの場合、ログインページにアクセスすると予定ページにリダイレクト

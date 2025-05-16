@@ -38,37 +38,45 @@ export default async function TaskPage() {
   try {
     // 個人ページのリレーションIDを使用してタスクと提出物を取得
     // personalPageIdが空の場合は空の配列を使用
-    const results = await Promise.allSettled([
-      personalPageId ? getTasksByStudentId(personalPageId) : Promise.resolve([]),
-      personalPageId ? getSubmissionsByStudentId(personalPageId) : Promise.resolve([]),
-      getStudentByEmail(session.user.email),
-    ])
+    console.log("Starting data fetch with personalPageId:", personalPageId)
 
-    // タスクの結果を処理
-    if (results[0].status === "fulfilled") {
-      tasks = results[0].value
-    } else {
-      console.error("Error fetching tasks:", results[0].reason)
-      errorDetails += `タスク取得エラー: ${results[0].reason?.message || "不明なエラー"}\n`
-      fetchError = results[0].reason
+    // 各データ取得を個別に実行し、エラーハンドリングを強化
+    try {
+      if (personalPageId) {
+        tasks = await getTasksByStudentId(personalPageId)
+        console.log(`Successfully fetched ${tasks.length} tasks`)
+      } else {
+        console.log("No personalPageId, skipping tasks fetch")
+      }
+    } catch (taskError) {
+      console.error("Error fetching tasks:", taskError)
+      errorDetails += `タスク取得エラー: ${taskError instanceof Error ? taskError.message : "不明なエラー"}\n`
+      fetchError = taskError
+      tasks = [] // エラー時は空配列を使用
     }
 
-    // 提出物の結果を処理
-    if (results[1].status === "fulfilled") {
-      submissions = results[1].value
-    } else {
-      console.error("Error fetching submissions:", results[1].reason)
-      errorDetails += `提出物取得エラー: ${results[1].reason?.message || "不明なエラー"}\n`
-      if (!fetchError) fetchError = results[1].reason
+    try {
+      if (personalPageId) {
+        submissions = await getSubmissionsByStudentId(personalPageId)
+        console.log(`Successfully fetched ${submissions.length} submissions`)
+      } else {
+        console.log("No personalPageId, skipping submissions fetch")
+      }
+    } catch (submissionError) {
+      console.error("Error fetching submissions:", submissionError)
+      errorDetails += `提出物取得エラー: ${submissionError instanceof Error ? submissionError.message : "不明なエラー"}\n`
+      if (!fetchError) fetchError = submissionError
+      submissions = [] // エラー時は空配列を使用
     }
 
-    // 学生情報の結果を処理
-    if (results[2].status === "fulfilled") {
-      student = results[2].value
-    } else {
-      console.error("Error fetching student:", results[2].reason)
-      errorDetails += `学生情報取得エラー: ${results[2].reason?.message || "不明なエラー"}`
-      if (!fetchError) fetchError = results[2].reason
+    try {
+      student = await getStudentByEmail(session.user.email)
+      console.log("Successfully fetched student data")
+    } catch (studentError) {
+      console.error("Error fetching student:", studentError)
+      errorDetails += `学生情報取得エラー: ${studentError instanceof Error ? studentError.message : "不明なエラー"}`
+      if (!fetchError) fetchError = studentError
+      student = null // エラー時はnullを使用
     }
   } catch (error) {
     console.error("Error in task page:", error)

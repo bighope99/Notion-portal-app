@@ -191,11 +191,19 @@ export async function logout() {
     expires: new Date(0),
   })
 
-  // リダイレクトカウンター���リセット
+  // リダイレクトカウンターをリセット
   cookieStore.delete("redirect_count", {
     path: "/",
     secure: process.env.NODE_ENV === "production",
     httpOnly: true,
+  })
+
+  // 追加のセキュリティとして、期限切れの値を設定
+  cookieStore.set("auth_token", "", {
+    expires: new Date(0),
+    path: "/",
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
   })
 
   return true

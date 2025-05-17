@@ -12,8 +12,16 @@ export async function GET() {
     )
 
     // すべての認証関連クッキーを確実に削除
-    response.cookies.delete("auth_token")
-    response.cookies.delete("redirect_count")
+    response.cookies.delete("auth_token", {
+      path: "/",
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+    })
+    response.cookies.delete("redirect_count", {
+      path: "/",
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+    })
 
     // 追加のセキュリティとして、期限切れの値を設定
     response.cookies.set("auth_token", "", {
@@ -31,8 +39,16 @@ export async function GET() {
     const response = NextResponse.redirect(
       new URL("/login", process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
     )
-    response.cookies.delete("auth_token")
-    response.cookies.delete("redirect_count")
+    response.cookies.delete("auth_token", {
+      path: "/",
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+    })
+    response.cookies.delete("redirect_count", {
+      path: "/",
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+    })
 
     return response
   }

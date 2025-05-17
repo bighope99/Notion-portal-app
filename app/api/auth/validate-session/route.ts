@@ -17,9 +17,18 @@ export async function GET(request: Request) {
       await logout()
 
       // ログインページにリダイレクト（セッション無効のフラグ付き）
-      return NextResponse.redirect(
+      const response = NextResponse.redirect(
         new URL("/login?session_invalid=true", process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
       )
+
+      // auth_tokenクッキーを確実に削除
+      response.cookies.delete("auth_token", {
+        path: "/",
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+      })
+
+      return response
     }
   } catch (error) {
     console.error("Session validation error:", error)

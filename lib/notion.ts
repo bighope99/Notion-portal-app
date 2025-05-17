@@ -17,24 +17,8 @@ function initNotionClient() {
 
     notionClient = new Client({
       auth: process.env.NOTION_API_KEY,
-      // タイムアウト設定を増加（30秒）
-      timeoutMs: 30000,
-      // エラーハンドリングを改善
-      notionVersion: "2022-06-28", // 最新のAPIバージョンを指定
-      // 必要に応じてカスタムフェッチ関数を設定
-      fetch: (url, init) => {
-        // カスタムヘッダーを追加
-        const headers = new Headers(init?.headers || {})
-        headers.set("X-Custom-Client-Info", "Notion-Portal-App")
-
-        // 新しいinitオブジェクトを作成
-        const newInit = {
-          ...init,
-          headers,
-        }
-
-        return fetch(url, newInit)
-      },
+      // タイムアウト設定を追加（15秒）
+      timeoutMs: 15000,
     })
 
     return notionClient
@@ -297,9 +281,8 @@ export async function getPasswordHashByEmail(email: string): Promise<string | nu
 // 学生IDに関連するタスクを取得 - エラーハンドリング強化版
 export async function getTasksByStudentId(studentId: string): Promise<Task[]> {
   // リトライ回数を設定
-  const maxRetries = 3
+  const maxRetries = 2
   let retryCount = 0
-  let lastError: Error | null = null
 
   // studentIdが空の場合は空の配列を返す
   if (!studentId) {
@@ -352,19 +335,17 @@ export async function getTasksByStudentId(studentId: string): Promise<Task[]> {
       })
     } catch (error: any) {
       // API呼び出しエラーをより詳細に記録
-      lastError = error
       console.error(`Notion API error in getTasksByStudentId (attempt ${retryCount + 1}):`, error)
 
       if (error.status) {
         console.error(`Status: ${error.status}, Code: ${error.code}`)
       }
 
-      // 最後のリトライでも失敗した場合
+      // 最後のリトライでも失敗した場合はエラーをスロー
       if (retryCount === maxRetries) {
         console.error("All retry attempts failed")
-        // 空の配列を返す（エラーをスローする代わりに）
-        console.warn("Returning empty array as fallback")
-        return []
+        // 空の配列を返す代わりにエラーをスロー
+        throw new Error(`Failed to fetch tasks: ${error.message || "Unknown error"}`)
       }
 
       // リトライ可能なエラーの場合は待機してリトライ
@@ -407,9 +388,8 @@ export async function updateTaskStatus(taskId: string, completed: boolean): Prom
 // 学生IDに関連する提出物を取得 - エラーハンドリング強化版
 export async function getSubmissionsByStudentId(studentId: string): Promise<Submission[]> {
   // リトライ回数を設定
-  const maxRetries = 3
+  const maxRetries = 2
   let retryCount = 0
-  let lastError: Error | null = null
 
   // studentIdが空の場合は空の配列を返す
   if (!studentId) {
@@ -470,19 +450,17 @@ export async function getSubmissionsByStudentId(studentId: string): Promise<Subm
       })
     } catch (error: any) {
       // API呼び出しエラーをより詳細に記録
-      lastError = error
       console.error(`Notion API error in getSubmissionsByStudentId (attempt ${retryCount + 1}):`, error)
 
       if (error.status) {
         console.error(`Status: ${error.status}, Code: ${error.code}`)
       }
 
-      // 最後のリトライでも失敗した場合
+      // 最後のリトライでも失敗した場合はエラーをスロー
       if (retryCount === maxRetries) {
         console.error("All retry attempts failed")
-        // 空の配列を返す（エラーをスローする代わりに）
-        console.warn("Returning empty array as fallback")
-        return []
+        // 空の配列を返す代わりにエラーをスロー
+        throw new Error(`Failed to fetch submissions: ${error.message || "Unknown error"}`)
       }
 
       // リトライ可能なエラーの場合は待機してリトライ

@@ -47,6 +47,14 @@ export function middleware(request: NextRequest) {
   if (pathname.startsWith("/dashboard") && !authToken) {
     // リダイレクトカウンターをインクリメント
     const response = NextResponse.redirect(new URL("/login", request.url))
+
+    // auth_tokenクッキーを確実に削除
+    response.cookies.delete("auth_token", {
+      path: "/",
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+    })
+
     response.cookies.set("redirect_count", String(redirectCount + 1), {
       path: "/",
       maxAge: 60, // 1分間だけ有効

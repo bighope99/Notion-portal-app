@@ -35,8 +35,10 @@ export default function DashboardHeader({ name }: DashboardHeaderProps) {
           description: "正常にログアウトしました",
         })
 
-        // クライアントサイドでもCookieを削除
-        document.cookie = "auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT"
+        // クライアントサイドでもCookieを削除 - 複数の方法を組み合わせて確実に削除
+        document.cookie = "auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; secure; samesite=lax"
+        document.cookie = "auth_token=; path=/; max-age=0; secure; samesite=lax"
+        document.cookie = "redirect_count=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; secure; samesite=lax"
 
         // 少し遅延を入れてからリダイレクト
         setTimeout(() => {

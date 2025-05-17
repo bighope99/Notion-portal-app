@@ -39,8 +39,13 @@ export default function LoginForm() {
 
     // クライアントサイドでCookieをクリア
     const clearCookies = () => {
+      // 方法1: 期限切れに設定
       document.cookie = "auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; secure; samesite=lax"
       document.cookie = "redirect_count=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; secure; samesite=lax"
+
+      // 方法2: 空の値を設定して削除 (一部のブラウザでより確実)
+      document.cookie = "auth_token=; path=/; max-age=0; secure; samesite=lax"
+      document.cookie = "redirect_count=; path=/; max-age=0; secure; samesite=lax"
     }
 
     // セッション関連のエラーがある場合は、確実にCookieをクリア

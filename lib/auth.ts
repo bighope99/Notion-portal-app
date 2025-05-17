@@ -181,14 +181,20 @@ export async function getSession() {
 export async function logout() {
   const cookieStore = cookies()
 
-  // 確実にCookieを削除
+  // 方法1: 削除
   cookieStore.delete("auth_token", {
     path: "/",
-    // 他のオプションも追加して確実に削除
     secure: process.env.NODE_ENV === "production",
     httpOnly: true,
-    maxAge: 0,
+  })
+
+  // 方法2: 期限切れの空の値を設定 - より確実な方法
+  cookieStore.set("auth_token", "", {
     expires: new Date(0),
+    path: "/",
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 0,
   })
 
   // リダイレクトカウンターをリセット
@@ -196,14 +202,6 @@ export async function logout() {
     path: "/",
     secure: process.env.NODE_ENV === "production",
     httpOnly: true,
-  })
-
-  // 追加のセキュリティとして、期限切れの値を設定
-  cookieStore.set("auth_token", "", {
-    expires: new Date(0),
-    path: "/",
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
   })
 
   return true

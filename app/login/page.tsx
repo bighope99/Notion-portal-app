@@ -3,13 +3,6 @@ import { getSession } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { cookies } from "next/headers"
 
-// Server Actionを定義
-async function clearAuthToken() {
-  "use server"
-  const cookieStore = await cookies()
-  cookieStore.delete("auth_token")
-}
-
 export default async function LoginPage({
   searchParams,
 }: {
@@ -25,8 +18,6 @@ export default async function LoginPage({
     if (session) {
       console.log("redirect dashboard", session)
       redirect("/dashboard/schedule")
-    } else {
-      await clearAuthToken()
     }
   }
 

@@ -22,11 +22,7 @@ export async function GET(request: Request) {
       )
 
       // auth_tokenクッキーを確実に削除
-      response.cookies.delete("auth_token", {
-        path: "/",
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-      })
+      response.cookies.delete("auth_token")
 
       return response
     }

@@ -8,48 +8,20 @@ export async function GET() {
 
     // ログインページにリダイレクト
     const response = NextResponse.redirect(
-      new URL("/login", process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
+      new URL("/login?forced_logout=true", process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
     )
 
     // すべての認証関連クッキーを確実に削除
-    response.cookies.delete("auth_token", {
-      path: "/",
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-    })
-    response.cookies.delete("redirect_count", {
-      path: "/",
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-    })
-
-    // 追加のセキュリティとして、期限切れの値を設定
-    response.cookies.set("auth_token", "", {
-      expires: new Date(0),
-      path: "/",
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-    })
+    response.cookies.delete("auth_token")
+    response.cookies.delete("redirect_count")
 
     return response
   } catch (error) {
     console.error("Force logout error:", error)
 
     // エラーが発生しても、ログインページにリダイレクト
-    const response = NextResponse.redirect(
-      new URL("/login", process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
+    return NextResponse.redirect(
+      new URL("/login?forced_logout=true", process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
     )
-    response.cookies.delete("auth_token", {
-      path: "/",
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-    })
-    response.cookies.delete("redirect_count", {
-      path: "/",
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-    })
-
-    return response
   }
 }

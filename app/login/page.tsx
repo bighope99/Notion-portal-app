@@ -1,6 +1,7 @@
 import LoginForm from "@/components/auth/login-form"
 import { getSession } from "@/lib/auth"
 import { redirect } from "next/navigation"
+import { cookies } from "next/headers"
 
 export default async function LoginPage({
   searchParams,
@@ -12,12 +13,13 @@ export default async function LoginPage({
 
   if (!forcedLogout) {
     const session = await getSession()
+    const cookieStore = await cookies()
 
     // セッションがある場合は予定ページにリダイレクト
     if (session) {
       console.log("redirect dashboard", session)
       redirect("/dashboard/schedule")
-    } else {
+    } else if (!session && cookieStore.get("auth_token")) {
       // セッションがない場合はauth_tokenを削除
       try {
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"

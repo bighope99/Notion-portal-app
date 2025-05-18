@@ -1,7 +1,6 @@
 import LoginForm from "@/components/auth/login-form"
 import { getSession } from "@/lib/auth"
 import { redirect } from "next/navigation"
-import { cookies } from "next/headers"
 
 export default async function LoginPage({
   searchParams,
@@ -18,6 +17,11 @@ export default async function LoginPage({
     if (session) {
       console.log("redirect dashboard", session)
       redirect("/dashboard/schedule")
+    } else {
+      fetch("/api/auth/clear-cookie", {
+        method: "POST",
+        cache: "no-store",
+      })
     }
   }
 

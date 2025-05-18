@@ -204,15 +204,8 @@ export async function forceLogout() {
 
   cookieStore.delete("redirect_count")
 
-  // 追加のセキュリティとして、期限切れの値を設定
-  cookieStore.set("auth_token", "", {
-    expires: new Date(0),
-    path: "/",
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-  })
-
   // ログ出力
+  console.log("force logout")
   console.warn("Force logout executed due to redirect loop")
 
   return true

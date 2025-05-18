@@ -103,6 +103,22 @@ export default function SubmissionList({ submissions: initialSubmissions, studen
 
   return (
     <div>
+      <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
+        <div className="flex items-center mb-2">
+          <a
+            href="https://forms.gle/7xL6afY8i2bZpMiG6"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:text-blue-800 font-medium flex items-center"
+          >
+            <ExternalLink className="h-4 w-4 mr-1" />
+            月次報告フォーム
+          </a>
+        </div>
+        <p className="text-sm text-gray-700">
+          ※毎月10日まで前月のリピート率スプレッドシートの入力と共に、フォームを入力・送信してください
+        </p>
+      </div>
       <div className="flex justify-end mb-4">
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>

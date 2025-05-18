@@ -44,7 +44,7 @@ export default function TaskSubmissionTab({ tasks, submissions, studentId }: Tas
     <Card className="border-0 shadow-none">
       <CardHeader className="px-0 sm:px-2">
         <CardTitle>タスクと提出物</CardTitle>
-        <CardDescription>あなたの学習タスクと提出物を管理します</CardDescription>
+        <CardDescription>あなたのタスクと提出物を管理します</CardDescription>
       </CardHeader>
       <CardContent className="p-0 sm:p-2">
         <Tabs defaultValue="tasks" className="w-full">

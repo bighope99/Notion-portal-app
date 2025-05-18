@@ -18,10 +18,16 @@ export default async function LoginPage({
       console.log("redirect dashboard", session)
       redirect("/dashboard/schedule")
     } else {
-      fetch("/api/auth/clear-cookie", {
-        method: "POST",
-        cache: "no-store",
-      })
+      // セッションがない場合はauth_tokenを削除
+      try {
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+        await fetch(`${baseUrl}/api/auth/clear-session`, {
+          method: "GET",
+          cache: "no-store",
+        })
+      } catch (error) {
+        console.error("Failed to clear session:", error)
+      }
     }
   }
 

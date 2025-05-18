@@ -1,6 +1,7 @@
 "use server"
 
 import { Client } from "@notionhq/client"
+import type { PageObjectResponse } from "@notionhq/client/build/src/api-endpoints"
 import { sendReservationEmails } from "./reservation-email"
 
 // Notion APIクライアントの初期化（改善版）
@@ -173,8 +174,8 @@ export async function getStudentByEmail(email: string): Promise<Student | null> 
       return null
     }
 
-    const page = response.results[0]
-    const properties = page.properties as any
+    const page = response.results[0] as PageObjectResponse
+    const properties = page.properties
 
     // デバッグ用にプロパティ名を出力
     // console.log("Available properties:", Object.keys(properties))
@@ -324,12 +325,11 @@ export async function getTasksByStudentId(studentId: string): Promise<Task[]> {
       console.log(`Successfully fetched ${response.results.length} tasks`)
 
       return response.results.map((page) => {
-        const properties = page.properties as any
-
+        const properties = (page as PageObjectResponse).properties
         return {
           id: page.id,
           name: getPropertyValue(properties, "名前", "title"),
-          assignedTo: studentId, // リレーションの場合は学生IDを設定
+          assignedTo: studentId,
           completed: getPropertyValue(properties, "完了", "checkbox"),
         }
       })
@@ -437,13 +437,12 @@ export async function getSubmissionsByStudentId(studentId: string): Promise<Subm
       console.log(`Successfully fetched ${response.results.length} submissions`)
 
       return response.results.map((page) => {
-        const properties = page.properties as any
-        const createdTime = page.created_time
-
+        const properties = (page as PageObjectResponse).properties
+        const createdTime = (page as PageObjectResponse).created_time
         return {
           id: page.id,
           name: getPropertyValue(properties, "名前", "title"),
-          studentId, // 学生IDを設定
+          studentId,
           url: getPropertyValue(properties, "URL", "url"),
           submittedAt: createdTime || "",
         }
@@ -599,7 +598,7 @@ export async function getSchedules(): Promise<{
     console.log(`Notion API query completed in ${duration}ms`)
 
     const schedules = response.results.map((page) => {
-      const properties = page.properties as any
+      const properties = (page as PageObjectResponse).properties
       const name = getPropertyValue(properties, "名前", "title")
       const theme = getPropertyValue(properties, "講義テーマ", "multi_select")
 
@@ -695,7 +694,7 @@ export async function getUserReservedSchedules(userEmail: string): Promise<Sched
     })
 
     return response.results.map((page) => {
-      const properties = page.properties as any
+      const properties = (page as PageObjectResponse).properties
       const name = getPropertyValue(properties, "名前", "title")
       const theme = getPropertyValue(properties, "講義テーマ", "multi_select")
       const isPersonalConsultation = theme.includes("個人コンサル")
@@ -758,7 +757,7 @@ export async function reserveConsultation(scheduleId: string, name: string, emai
       page_id: scheduleId,
     })
 
-    const properties = response.properties as any
+    const properties = (response as PageObjectResponse).properties
     const scheduleName = getPropertyValue(properties, "名前", "title")
     const dateRange = getPropertyValue(properties, "実施日", "date_range")
     const instructor = getPropertyValue(properties, "講師", "rich_text")

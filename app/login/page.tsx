@@ -15,6 +15,7 @@ export default async function LoginPage({
 
     // セッションがある場合は予定ページにリダイレクト
     if (session) {
+      console.log("redirect dashboard", session)
       redirect("/dashboard/schedule")
     }
   }

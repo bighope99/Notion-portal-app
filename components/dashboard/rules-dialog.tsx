@@ -64,7 +64,7 @@ export function RulesDialog() {
                     やスタンプを送り合うようにしましょう。
                   </p>
                   <ul className="mt-2 list-disc pl-5 text-sm text-gray-600">
-                    <li>誰かの言葉で自分が前に進めたら、それは最高のギフト</li>
+                    <li>誰かの言葉で自分が前に進��たら、それは最高のギフト</li>
                     <li>見守りメンバーではなく、"場をつくるメンバー"へ</li>
                   </ul>
                 </div>

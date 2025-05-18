@@ -49,22 +49,7 @@ export function middleware(request: NextRequest) {
     const response = NextResponse.redirect(new URL("/login", request.url))
 
     // auth_tokenクッキーを確実に削除
-    // 方法1: 削除
-    response.cookies.delete("auth_token", {
-      path: "/",
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-    })
-
-    // 方法2: 期限切れの空の値を設定
-    response.cookies.set("auth_token", "", {
-      expires: new Date(0),
-      path: "/",
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 0,
-    })
-
+    response.cookies.delete("auth_token")
     response.cookies.set("redirect_count", String(redirectCount + 1), {
       path: "/",
       maxAge: 60, // 1分間だけ有効

@@ -56,7 +56,7 @@ export async function loginWithPassword(email: string, password: string) {
 
     // セッションの保存
     const token = await generateToken(email)
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
     cookieStore.set("auth_token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -131,7 +131,7 @@ export async function login(email: string, isReset = false) {
 
 // セッションの取得
 export async function getSession() {
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   const token = cookieStore.get("auth_token")?.value
 
   if (!token) {
@@ -179,16 +179,8 @@ export async function getSession() {
 
 // ログアウト処理
 export async function logout() {
-  const cookieStore = cookies()
-
-  // 方法1: 削除
-  cookieStore.delete("auth_token", {
-    path: "/",
-    secure: process.env.NODE_ENV === "production",
-    httpOnly: true,
-  })
-
-  // 方法2: 期限切れの空の値を設定 - より確実な方法
+  const cookieStore = await cookies()
+  cookieStore.delete("auth_token")
   cookieStore.set("auth_token", "", {
     expires: new Date(0),
     path: "/",
@@ -198,31 +190,19 @@ export async function logout() {
   })
 
   // リダイレクトカウンターをリセット
-  cookieStore.delete("redirect_count", {
-    path: "/",
-    secure: process.env.NODE_ENV === "production",
-    httpOnly: true,
-  })
+  cookieStore.delete("redirect_count")
 
   return true
 }
 
 // 強制ログアウト処理 - リダイレクトループ対策
 export async function forceLogout() {
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
 
   // すべての認証関連Cookieを削除
-  cookieStore.delete("auth_token", {
-    path: "/",
-    secure: process.env.NODE_ENV === "production",
-    httpOnly: true,
-  })
+  cookieStore.delete("auth_token")
 
-  cookieStore.delete("redirect_count", {
-    path: "/",
-    secure: process.env.NODE_ENV === "production",
-    httpOnly: true,
-  })
+  cookieStore.delete("redirect_count")
 
   // 追加のセキュリティとして、期限切れの値を設定
   cookieStore.set("auth_token", "", {
@@ -260,7 +240,7 @@ export async function handleCallback(token: string) {
     }
 
     // セッションの保存
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
     cookieStore.set("auth_token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -269,12 +249,7 @@ export async function handleCallback(token: string) {
     })
 
     // リダイレクトカウンターをリセット
-    cookieStore.set("redirect_count", "0", {
-      path: "/",
-      maxAge: 60, // 1分間だけ有効
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-    })
+    cookieStore.delete("redirect_count")
 
     // パスワードが設定されているかどうかを確認
     const hasPassword = !!student.passwordHash

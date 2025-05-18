@@ -21,12 +21,12 @@ export default async function LoginPage({
       // セッションがない場合はauth_tokenを削除
       try {
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
-        await fetch(`${baseUrl}/api/auth/clear-session`, {
+        await fetch(`${baseUrl}/api/auth/clear-cookies`, {
           method: "GET",
           cache: "no-store",
         })
       } catch (error) {
-        console.error("Failed to clear session:", error)
+        console.error("Failed to clear cookies:", error)
       }
     }
   }

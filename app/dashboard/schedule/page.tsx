@@ -16,14 +16,14 @@ export default async function SchedulePage() {
 
   // 予定データを取得
   let scheduleData
-  let fetchError = null
+  let fetchError: Error | null = null
   let errorDetails = ""
 
   try {
     scheduleData = await getSchedules()
   } catch (error) {
     console.error("Error fetching schedules:", error)
-    fetchError = error
+    fetchError = error instanceof Error ? error : null
     errorDetails = error instanceof Error ? error.message : "Unknown error"
 
     // エラー時のフォールバックデータ
@@ -38,7 +38,7 @@ export default async function SchedulePage() {
     <div className="container mx-auto px-2 sm:px-4 py-8">
       <DashboardHeader name={session.user.name} />
 
-      {fetchError && (
+      {fetchError instanceof Error && (
         <Alert variant="destructive" className="my-4">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>

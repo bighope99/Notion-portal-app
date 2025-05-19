@@ -31,7 +31,6 @@ export function middleware(request: NextRequest) {
   if (pathname === "/dashboard/setup-password") {
     // パスワード設定ページはauth_tokenがあれば許可（セッション検証はページ内で行う）
     if (!authToken) {
-      console.log("パスワード設定ページへのアクセスはauth_tokenがあれば許可")
       const response = NextResponse.redirect(new URL("/login", request.url))
       response.cookies.set("redirect_count", String(redirectCount + 1), {
         path: "/",
@@ -47,7 +46,6 @@ export function middleware(request: NextRequest) {
   // ダッシュボードへのアクセスはログインが必要
   if (pathname.startsWith("/dashboard") && !authToken) {
     // リダイレクトカウンターをインクリメント
-    console.log("ダッシュボードへのアクセスはログインが必要", authToken)
     const response = NextResponse.redirect(new URL("/login", request.url))
 
     // auth_tokenクッキーを確実に削除
@@ -65,7 +63,6 @@ export function middleware(request: NextRequest) {
   if ((pathname === "/login" || pathname === "/") && authToken) {
     // リダイレクトカウンターをインクリメント
     const response = NextResponse.redirect(new URL("/dashboard/schedule", request.url))
-    console.log("リダイレクトカウンターをインクリメント", redirectCount)
     response.cookies.set("redirect_count", String(redirectCount + 1), {
       path: "/",
       maxAge: 60, // 1分間だけ有効

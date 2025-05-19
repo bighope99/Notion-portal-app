@@ -11,7 +11,15 @@ export default async function SchedulePage() {
 
   if (!session) {
     // 無効なセッションを検出した場合、ログインページにリダイレクト
-    redirect("/login")
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+      await fetch(`${baseUrl}/api/auth/clear-cookies`, {
+        method: "GET",
+        cache: "no-store",
+      })
+    } catch (error) {
+      console.error("Failed to clear cookies:", error)
+    }
   }
 
   // 予定データを取得
@@ -36,7 +44,7 @@ export default async function SchedulePage() {
 
   return (
     <div className="container mx-auto px-2 sm:px-4 py-8">
-      <DashboardHeader name={session.user.name} />
+      <DashboardHeader name={session?.user.name || "ゲスト"} />
 
       {fetchError instanceof Error && (
         <Alert variant="destructive" className="my-4">
@@ -54,7 +62,7 @@ export default async function SchedulePage() {
           regularSchedules={scheduleData.regularSchedules}
           personalConsultations={scheduleData.personalConsultations}
           archives={scheduleData.archives}
-          userEmail={session.user.email}
+          userEmail={session?.user.email || ""}
         />
       </div>
     </div>

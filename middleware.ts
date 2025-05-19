@@ -65,6 +65,7 @@ export function middleware(request: NextRequest) {
   if ((pathname === "/login" || pathname === "/") && authToken) {
     // リダイレクトカウンターをインクリメント
     const response = NextResponse.redirect(new URL("/dashboard/schedule", request.url))
+    console.log("リダイレクトカウンターをインクリメント", redirectCount)
     response.cookies.set("redirect_count", String(redirectCount + 1), {
       path: "/",
       maxAge: 60, // 1分間だけ有効

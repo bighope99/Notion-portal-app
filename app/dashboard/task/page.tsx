@@ -14,7 +14,15 @@ export default async function TaskPage() {
 
   if (!session) {
     // 無効なセッションを検出した場合、ログインページにリダイレクト
-    redirect("/login")
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+      await fetch(`${baseUrl}/api/auth/clear-cookies`, {
+        method: "GET",
+        cache: "no-store",
+      })
+    } catch (error) {
+      console.error("Failed to clear cookies:", error)
+    }
   }
 
   const studentId = session.user.id

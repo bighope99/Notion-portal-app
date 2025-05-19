@@ -12,7 +12,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner"
 export default async function TaskPage() {
   const session = await getSession()
 
-  if (!session) {
+  if (!session?.user.name) {
     // 無効なセッションを検出した場合、ログインページにリダイレクト
     try {
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"

@@ -13,7 +13,7 @@ export default async function SchedulePage() {
     // 空白または未定義の場合の処理
     try {
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
-      await fetch(`${baseUrl}/api/auth/clear-cookies`, {
+      await fetch(`${baseUrl}/api/auth/logout`, {
         method: "GET",
         cache: "no-store",
       })

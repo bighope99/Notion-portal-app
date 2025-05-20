@@ -15,13 +15,26 @@ export default async function TaskPage() {
   if (!session?.user.name || session.user.name.trim() === "") {
     // 空白または未定義の場合の処理
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
-      await fetch(`${baseUrl}/api/auth/logout`, {
-        method: "GET",
-        cache: "no-store",
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
       })
+
+      if (response.ok) {
+        // クライアントサイドでもCookieを削除 - 複数の方法を組み合わせて確実に削除
+        document.cookie = "auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; secure; samesite=lax"
+        document.cookie = "auth_token=; path=/; max-age=0; secure; samesite=lax"
+        document.cookie = "redirect_count=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; secure; samesite=lax"
+
+        // 少し遅延を入れてからリダイレクト
+        setTimeout(() => {
+          // 強制的にページをリロードしてからリダイレクト
+          window.location.href = "/login"
+        }, 100)
+      } else {
+        throw new Error("ログアウトに失敗しました")
+      }
     } catch (error) {
-      console.error("Failed to clear cookies:", error)
+      console.error("Logout failed:", error)
     }
   }
 

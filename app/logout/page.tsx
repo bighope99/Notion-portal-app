@@ -1,36 +1,84 @@
-import { redirect } from "next/navigation"
-import { logout } from "@/lib/auth"
-import { cookies } from "next/headers"
+"use client"
 
-export default async function LogoutPage() {
-  // サーバーサイドでログアウト処理を実行
-  try {
-    await logout()
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { LogOut } from "lucide-react"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
 
-    // 確実にCookieを削除
-    const cookieStore = cookies()
-    cookieStore.delete("auth_token")
+export default function LogoutPage() {
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const router = useRouter()
 
-    // 複数の方法でCookieを削除（冗長性を持たせる）
-    cookieStore.set("auth_token", "", {
-      expires: new Date(0),
-      path: "/",
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 0,
-    })
+  // 自動ログアウトを防ぐために、ページロード時にはログアウト処理を行わない
+  const handleLogout = async () => {
+    setIsLoggingOut(true)
+    setError(null)
 
-    // リダイレクトカウンターもリセット
-    cookieStore.delete("redirect_count")
+    try {
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
+      })
 
-    // ログインページにリダイレクト
-    redirect("/login?logged_out=true")
-  } catch (error) {
-    console.error("Logout error:", error)
-    // エラーが発生しても、ログインページにリダイレクト
-    redirect("/login?error=logout_failed")
+      if (response.ok) {
+        // クライアントサイドでもCookieを削除 - 複数の方法を組み合わせて確実に削除
+        document.cookie = "auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; secure; samesite=lax"
+        document.cookie = "auth_token=; path=/; max-age=0; secure; samesite=lax"
+        document.cookie = "redirect_count=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; secure; samesite=lax"
+
+        // 少し遅延を入れてからリダイレクト
+        setTimeout(() => {
+          // 強制的にページをリロードしてからリダイレクト
+          window.location.href = "/login?logged_out=true"
+        }, 500)
+      } else {
+        throw new Error("ログアウトに失敗しました")
+      }
+    } catch (error) {
+      console.error("Logout failed:", error)
+      setError(error instanceof Error ? error.message : "ログアウト処理中にエラーが発生しました")
+      setIsLoggingOut(false)
+    }
   }
 
-  // このコードは実行されないが、TypeScriptの型チェックのために必要
-  return null
+  // キャンセルボタンの処理
+  const handleCancel = () => {
+    router.push("/dashboard/schedule")
+  }
+
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gray-50">
+      <Card className="w-full max-w-md shadow-lg">
+        <CardHeader>
+          <div className="flex justify-center mb-4">
+            <div className="rounded-full bg-red-100 p-3">
+              <LogOut className="h-6 w-6 text-red-600" />
+            </div>
+          </div>
+          <CardTitle className="text-center">ログアウト</CardTitle>
+          <CardDescription className="text-center">GROWSポータルからログアウトします</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">{error}</div>}
+          <p className="text-center mb-4">本当にログアウトしますか？</p>
+          {isLoggingOut && (
+            <div className="flex justify-center my-4">
+              <LoadingSpinner size={24} className="text-blue-600" />
+              <span className="ml-2">ログアウト中...</span>
+            </div>
+          )}
+        </CardContent>
+        <CardFooter className="flex justify-between">
+          <Button variant="outline" onClick={handleCancel} disabled={isLoggingOut}>
+            キャンセル
+          </Button>
+          <Button variant="destructive" onClick={handleLogout} disabled={isLoggingOut}>
+            ログアウト
+          </Button>
+        </CardFooter>
+      </Card>
+    </div>
+  )
 }

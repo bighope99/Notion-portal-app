@@ -13,7 +13,7 @@ export default async function TaskPage() {
   const session = await getSession()
 
   if (!session?.user.name || session.user.name.trim() === "") {
-    
+    redirect("/logout")
   }
 
   const studentId = session?.user.id

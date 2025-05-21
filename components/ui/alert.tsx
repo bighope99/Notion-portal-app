@@ -9,15 +9,14 @@ const alertVariants = cva(
     variants: {
       variant: {
         default: "bg-background text-foreground",
-        destructive: "border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive",
-        warning: "border-yellow-500/30 text-yellow-700 dark:border-yellow-500 [&>svg]:text-yellow-500",
-        info: "border-blue-500/30 text-blue-700 dark:border-blue-500 [&>svg]:text-blue-500",
+        destructive:
+          "border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive",
       },
     },
     defaultVariants: {
       variant: "default",
     },
-  },
+  }
 )
 
 const Alert = React.forwardRef<
@@ -27,28 +26,34 @@ const Alert = React.forwardRef<
   <div
     ref={ref}
     role="alert"
-    className={cn(
-      alertVariants({ variant }),
-      "md:max-w-md lg:max-w-lg xl:max-w-xl", // 幅を制限
-      className,
-    )}
+    className={cn(alertVariants({ variant }), className)}
     {...props}
   />
 ))
 Alert.displayName = "Alert"
 
-const AlertTitle = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLHeadingElement>>(
-  ({ className, ...props }, ref) => (
-    <h5 ref={ref} className={cn("mb-1 font-medium leading-none tracking-tight", className)} {...props} />
-  ),
-)
+const AlertTitle = React.forwardRef<
+  HTMLParagraphElement,
+  React.HTMLAttributes<HTMLHeadingElement>
+>(({ className, ...props }, ref) => (
+  <h5
+    ref={ref}
+    className={cn("mb-1 font-medium leading-none tracking-tight", className)}
+    {...props}
+  />
+))
 AlertTitle.displayName = "AlertTitle"
 
-const AlertDescription = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLParagraphElement>>(
-  ({ className, ...props }, ref) => (
-    <p ref={ref} className={cn("text-sm [&_p]:leading-relaxed", className)} {...props} />
-  ),
-)
+const AlertDescription = React.forwardRef<
+  HTMLParagraphElement,
+  React.HTMLAttributes<HTMLParagraphElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn("text-sm [&_p]:leading-relaxed", className)}
+    {...props}
+  />
+))
 AlertDescription.displayName = "AlertDescription"
 
 export { Alert, AlertTitle, AlertDescription }

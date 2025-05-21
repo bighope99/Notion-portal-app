@@ -10,6 +10,7 @@ export default async function SchedulePage() {
   const session = await getSession()
 
   if (!session?.user.name || session.user.name.trim() === "") {
+    // 空白または未定義の場合の処理
     redirect("/logout")
   }
 

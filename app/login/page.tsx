@@ -15,8 +15,10 @@ export default async function LoginPage({
   searchParams: SearchParams
 }) {
   try {
-    const forcedLogout = searchParams?.forced_logout === "true"
-    const error = searchParams?.error
+    // searchParamsを非同期で処理
+    const params = await Promise.resolve(searchParams)
+    const forcedLogout = params?.forced_logout === "true"
+    const error = params?.error
 
     if (!forcedLogout) {
       const session = await getSession()

@@ -9,17 +9,9 @@ import { AlertCircle } from "lucide-react"
 export default async function SchedulePage() {
   const session = await getSession()
 
-  if (!session) {
-    // 無効なセッションを検出した場合、ログインページにリダイレクト
-    try {
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
-      await fetch(`${baseUrl}/api/auth/clear-cookies`, {
-        method: "GET",
-        cache: "no-store",
-      })
-    } catch (error) {
-      console.error("Failed to clear cookies:", error)
-    }
+  if (!session?.user.name || session.user.name.trim() === "") {
+    // 空白または未定義の場合の処理
+    redirect("/logout")
   }
 
   // 予定データを取得

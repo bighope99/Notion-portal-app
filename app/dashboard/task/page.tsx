@@ -12,27 +12,26 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner"
 export default async function TaskPage() {
   const session = await getSession()
 
-  if (!session) {
-    // 無効なセッションを検出した場合、ログインページにリダイレクト
-    redirect("/login")
+  if (!session?.user.name || session.user.name.trim() === "") {
+    redirect("/logout")
   }
 
-  const studentId = session.user.id
-  const personalPageId = session.user.personalPageId || ""
+  const studentId = session?.user.id
+  const personalPageId = session?.user.personalPageId || ""
 
   // 最終閲覧時間を更新
   try {
-    await updateLastViewedAt(studentId)
+    await updateLastViewedAt(studentId || "")
   } catch (error) {
     console.error("Failed to update last viewed at:", error)
     // 非クリティカルな操作なので、エラーが発生しても続行
   }
 
   // データ取得のためのステート
-  let tasks = []
-  let submissions = []
-  let student = null
-  let fetchError = null
+  let tasks: any[] = []
+  let submissions: any[] = []
+  let student: any = null
+  let fetchError: any = null
   let errorDetails = ""
 
   try {
@@ -41,7 +40,7 @@ export default async function TaskPage() {
     const results = await Promise.allSettled([
       personalPageId ? getTasksByStudentId(personalPageId) : Promise.resolve([]),
       personalPageId ? getSubmissionsByStudentId(personalPageId) : Promise.resolve([]),
-      getStudentByEmail(session.user.email),
+      session?.user.email ? getStudentByEmail(session.user.email) : Promise.resolve(null),
     ])
 
     // タスクの結果を処理
@@ -78,7 +77,7 @@ export default async function TaskPage() {
 
   return (
     <div className="container mx-auto px-2 sm:px-4 py-8">
-      <DashboardHeader name={session.user.name} />
+      <DashboardHeader name={session?.user.name || "ゲスト"} />
 
       {fetchError && (
         <Alert variant="destructive" className="my-4">

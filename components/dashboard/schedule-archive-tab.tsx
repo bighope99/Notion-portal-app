@@ -65,7 +65,42 @@ export default function ScheduleArchiveTab({
           <TabsContent value="schedules" className="mt-4">
             <div className="space-y-6">
               <div>
-                <h3 className="text-xl font-medium mb-2">セミナー・イベント</h3>
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-2">
+                  <h3 className="text-xl font-medium mb-2">セミナー・イベント</h3>
+                  {/* 注意書きを追加 - PC版では横に配置 */}
+                  <div className="hidden md:block">
+                    <Alert variant="info" className="mt-0 bg-blue-50 border-blue-200 text-xs">
+                      <Info className="h-3 w-3 text-blue-500" />
+                      <AlertDescription className="text-blue-700">
+                        {/* pタグの入れ子を解消 */}
+                        <div className="mt-2 text-xs">
+                          <div className="font-medium mb-1">Zoomミーティング情報:</div>
+                          <div className="space-y-1">
+                            <div><span className="font-medium">URL:</span> <a href="https://us06web.zoom.us/j/2173067308?pwd=bFShtAIz3HUW5fWmkqFy3fXSFCRHT3.1&omn=83813824793" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 inline-flex items-center">https://us06web.zoom.us/j/2173067308?pwd=bFShtAIz3HUW5fWmkqFy3fXSFCRHT3.1&omn=83813824793</a></div>
+                            <div><span className="font-medium">ミーティングID:</span>217 306 7308</div>
+                            <div><span className="font-medium">パスコード:</span>1234</div>
+                          </div>
+                        </div>
+                      </AlertDescription>
+                    </Alert>
+                  </div>
+                  {/* モバイル版の注意書き */}
+                  <div className="md:hidden mb-4">
+                    <Alert variant="info" className="bg-blue-50 border-blue-200">
+                      <Info className="h-4 w-4 text-blue-500" />
+                      <AlertDescription className="text-blue-700">
+                        <div className="mt-2 text-sm">
+                          <div className="font-medium mb-1">Zoomミーティング情報:</div>
+                          <div className="space-y-1">
+                            <div><span className="font-medium">URL:</span> <a href="https://us06web.zoom.us/j/2173067308?pwd=bFShtAIz3HUW5fWmkqFy3fXSFCRHT3.1&omn=83813824793" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 inline-flex items-center">https://us06web.zoom.us/j/2173067308?pwd=bFShtAIz3HUW5fWmkqFy3fXSFCRHT3.1&omn=83813824793</a></div>
+                            <div><span className="font-medium">ミーティングID:</span>217 306 7308</div>
+                            <div><span className="font-medium">パスコード:</span>1234</div>
+                          </div>
+                        </div>
+                      </AlertDescription>
+                    </Alert>
+                  </div>
+                </div>
                 <div className="w-full overflow-x-auto">
                   <ScheduleCalendar schedules={regularSchedules} />
                 </div>

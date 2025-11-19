@@ -20,7 +20,18 @@ export default async function SchedulePage() {
   let errorDetails = ""
 
   try {
-    scheduleData = await getSchedules()
+    // 並行してデータを取得
+    const [regularData, consultationData, archiveData] = await Promise.all([
+      getSchedules({ date: new Date(), type: "regular" }),
+      getSchedules({ date: new Date(), type: "consultation" }),
+      getSchedules({ type: "archive" }),
+    ])
+
+    scheduleData = {
+      regularSchedules: regularData.regularSchedules,
+      personalConsultations: consultationData.personalConsultations,
+      archives: archiveData.archives,
+    }
   } catch (error) {
     console.error("Error fetching schedules:", error)
     fetchError = error instanceof Error ? error : null

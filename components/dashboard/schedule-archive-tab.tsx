@@ -69,7 +69,7 @@ export default function ScheduleArchiveTab({
                   <h3 className="text-xl font-medium mb-2">セミナー・イベント</h3>
                   {/* 注意書きを追加 - PC版では横に配置 */}
                   <div className="hidden md:block">
-                    <Alert variant="info" className="mt-0 bg-blue-50 border-blue-200 text-xs">
+                    <Alert className="mt-0 bg-blue-50 border-blue-200 text-xs">
                       <Info className="h-3 w-3 text-blue-500" />
                       <AlertDescription className="text-blue-700">
                         {/* pタグの入れ子を解消 */}
@@ -86,7 +86,7 @@ export default function ScheduleArchiveTab({
                   </div>
                   {/* モバイル版の注意書き */}
                   <div className="md:hidden mb-4">
-                    <Alert variant="info" className="bg-blue-50 border-blue-200">
+                    <Alert className="bg-blue-50 border-blue-200">
                       <Info className="h-4 w-4 text-blue-500" />
                       <AlertDescription className="text-blue-700">
                         <div className="mt-2 text-sm">
@@ -102,7 +102,7 @@ export default function ScheduleArchiveTab({
                   </div>
                 </div>
                 <div className="w-full overflow-x-auto">
-                  <ScheduleCalendar schedules={regularSchedules} />
+                  <ScheduleCalendar schedules={regularSchedules} type="regular" />
                 </div>
               </div>
 
@@ -112,7 +112,7 @@ export default function ScheduleArchiveTab({
 
                   {/* 注意書きを追加 - PC版では横に配置 */}
                   <div className="hidden md:block">
-                    <Alert variant="info" className="mt-0 bg-blue-50 border-blue-200 text-xs">
+                    <Alert className="mt-0 bg-blue-50 border-blue-200 text-xs">
                       <Info className="h-3 w-3 text-blue-500" />
                       <AlertDescription className="text-blue-700">
                         {/* pタグの入れ子を解消 */}
@@ -137,7 +137,7 @@ export default function ScheduleArchiveTab({
 
                 {/* モバイル版の注意書き */}
                 <div className="md:hidden mb-4">
-                  <Alert variant="info" className="bg-blue-50 border-blue-200">
+                  <Alert className="bg-blue-50 border-blue-200">
                     <Info className="h-4 w-4 text-blue-500" />
                     <AlertDescription className="text-blue-700">
                       {/* pタグの入れ子を解消 */}
@@ -189,7 +189,7 @@ export default function ScheduleArchiveTab({
                   </div>
                 )}
                 <div className="w-full overflow-x-auto">
-                  <ScheduleCalendar schedules={personalConsultations} />
+                  <ScheduleCalendar schedules={personalConsultations} type="consultation" />
                 </div>
               </div>
             </div>

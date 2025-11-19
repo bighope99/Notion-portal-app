@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import type { Schedule, DateRange } from "@/lib/notion"
 import { ja } from "date-fns/locale"
 import {
@@ -42,6 +42,7 @@ import {
 
 interface ScheduleCalendarProps {
   schedules: Schedule[]
+  type: "regular" | "consultation"
 }
 
 // 日付範囲から時間部分のみを抽出する関数
@@ -78,8 +79,10 @@ function formatTime(dateString: string): string {
   }
 }
 
-export default function ScheduleCalendar({ schedules }: ScheduleCalendarProps) {
+export default function ScheduleCalendar({ schedules: initialSchedules, type }: ScheduleCalendarProps) {
+  const [schedules, setSchedules] = useState<Schedule[]>(initialSchedules)
   const [currentMonth, setCurrentMonth] = useState(new Date())
+  const [isLoading, setIsLoading] = useState(false)
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null)
@@ -104,19 +107,53 @@ export default function ScheduleCalendar({ schedules }: ScheduleCalendarProps) {
     return eachDayOfInterval({ start: startDate, end: endDate })
   }, [currentMonth])
 
+  // データを取得する関数
+  const fetchMonthlySchedules = async (date: Date) => {
+    setIsLoading(true)
+    try {
+      const year = date.getFullYear()
+      const month = date.getMonth() + 1
+      const response = await fetch(`/api/schedules?year=${year}&month=${month}&type=${type}`)
+      if (response.ok) {
+        const data = await response.json()
+        // typeに応じてデータをセット
+        if (type === "regular") {
+          setSchedules(data.regularSchedules)
+        } else if (type === "consultation") {
+          setSchedules(data.personalConsultations)
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch schedules:", error)
+      toast({
+        title: "エラー",
+        description: "予定の取得に失敗しました",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   // 前月へ移動
   const prevMonth = () => {
-    setCurrentMonth(subMonths(currentMonth, 1))
+    const newDate = subMonths(currentMonth, 1)
+    setCurrentMonth(newDate)
+    fetchMonthlySchedules(newDate)
   }
 
   // 翌月へ移動
   const nextMonth = () => {
-    setCurrentMonth(addMonths(currentMonth, 1))
+    const newDate = addMonths(currentMonth, 1)
+    setCurrentMonth(newDate)
+    fetchMonthlySchedules(newDate)
   }
 
   // 今月へ移動
   const goToToday = () => {
-    setCurrentMonth(new Date())
+    const newDate = new Date()
+    setCurrentMonth(newDate)
+    fetchMonthlySchedules(newDate)
   }
 
   // 選択された日付のスケジュールを取得
@@ -211,9 +248,10 @@ export default function ScheduleCalendar({ schedules }: ScheduleCalendarProps) {
     }
   }
 
-  if (schedules.length === 0) {
-    return <div className="text-center py-4 text-gray-500">予定はありません</div>
-  }
+  // ローディング中もカレンダーの枠は表示したいので、ここではreturnしない
+  // if (schedules.length === 0) {
+  //   return <div className="text-center py-4 text-gray-500">予定はありません</div>
+  // }
 
   return (
     <div className="calendar-container">
@@ -234,14 +272,18 @@ export default function ScheduleCalendar({ schedules }: ScheduleCalendarProps) {
       </div>
 
       {/* カレンダーグリッド */}
-      <div className="grid grid-cols-7 border rounded-lg overflow-hidden bg-white">
+      <div className="grid grid-cols-7 border rounded-lg overflow-hidden bg-white relative">
+        {isLoading && (
+          <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+          </div>
+        )}
         {/* 曜日ヘッダー */}
         {weekDays.map((day, index) => (
           <div
             key={index}
-            className={`p-2 text-center font-medium border-b ${
-              index === 0 ? "text-red-500" : index === 6 ? "text-blue-500" : ""
-            }`}
+            className={`p-2 text-center font-medium border-b ${index === 0 ? "text-red-500" : index === 6 ? "text-blue-500" : ""
+              }`}
           >
             {day}
           </div>
@@ -257,16 +299,14 @@ export default function ScheduleCalendar({ schedules }: ScheduleCalendarProps) {
           return (
             <div
               key={index}
-              className={`min-h-[100px] border p-1 relative ${
-                !isCurrentMonth ? "bg-gray-50 text-gray-400" : ""
-              } ${isSelectedDay ? "bg-blue-50" : ""} ${isTodayDate ? "border-blue-500 border-2" : ""}`}
+              className={`min-h-[100px] border p-1 relative ${!isCurrentMonth ? "bg-gray-50 text-gray-400" : ""
+                } ${isSelectedDay ? "bg-blue-50" : ""} ${isTodayDate ? "border-blue-500 border-2" : ""}`}
               onClick={() => handleDateClick(day)}
             >
               {/* 日付表示 */}
               <div
-                className={`text-right text-sm mb-1 ${
-                  getDay(day) === 0 ? "text-red-500" : getDay(day) === 6 ? "text-blue-500" : ""
-                } ${!isCurrentMonth ? "text-gray-400" : ""}`}
+                className={`text-right text-sm mb-1 ${getDay(day) === 0 ? "text-red-500" : getDay(day) === 6 ? "text-blue-500" : ""
+                  } ${!isCurrentMonth ? "text-gray-400" : ""}`}
               >
                 {format(day, "d")}
               </div>
@@ -276,9 +316,8 @@ export default function ScheduleCalendar({ schedules }: ScheduleCalendarProps) {
                 {daySchedules.map((schedule, idx) => (
                   <div
                     key={idx}
-                    className={`text-xs mb-1 p-1 rounded truncate ${
-                      schedule.isPersonalConsultation ? "bg-purple-100 text-purple-800" : "bg-blue-100 text-blue-800"
-                    }`}
+                    className={`text-xs mb-1 p-1 rounded truncate ${schedule.isPersonalConsultation ? "bg-purple-100 text-purple-800" : "bg-blue-100 text-blue-800"
+                      }`}
                     title={schedule.name}
                   >
                     {schedule.dateRange?.start && formatTime(schedule.dateRange.start)} {schedule.name}

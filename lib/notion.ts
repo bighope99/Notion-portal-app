@@ -3,6 +3,7 @@
 import { Client } from "@notionhq/client"
 import type { PageObjectResponse } from "@notionhq/client/build/src/api-endpoints"
 import { sendReservationEmails } from "./reservation-email"
+import { startOfMonth, endOfMonth, formatISO } from "date-fns"
 
 // Notion APIクライアントの初期化（改善版）
 let notionClient: Client | null = null
@@ -517,8 +518,14 @@ export async function addSubmission(studentId: string, name: string, url: string
   }
 }
 
+// 予定取得のオプション
+export interface GetSchedulesOptions {
+  date?: Date // 指定された月でフィルタリング
+  type?: "regular" | "consultation" | "archive" // 種類でフィルタリング
+}
+
 // 予定を取得（完了していないもののみ）- エラーハンドリング強化版
-export async function getSchedules(): Promise<{
+export async function getSchedules(options?: GetSchedulesOptions): Promise<{
   regularSchedules: Schedule[]
   personalConsultations: Schedule[]
   archives: Schedule[]
@@ -544,17 +551,111 @@ export async function getSchedules(): Promise<{
       throw new Error("SCHEDULES_DB_ID is not valid")
     }
 
+    // フィルターの構築
+    const filters: any[] = []
+
+    // 完了していないものを取得（アーカイブ以外の場合）
+    // アーカイブの場合は完了フラグを気にしない（あるいは完了したものも含める）
+    // 現状の仕様では「完了」チェックボックスが未チェックのものを取得している
+    if (options?.type !== "archive") {
+      filters.push({
+        property: "完了",
+        checkbox: {
+          equals: false,
+        },
+      })
+    }
+
+    // 日付フィルター（月指定）
+    if (options?.date) {
+      const startDate = startOfMonth(options.date)
+      const endDate = endOfMonth(options.date)
+
+      filters.push({
+        property: "実施日",
+        date: {
+          on_or_after: formatISO(startDate),
+        },
+      })
+      filters.push({
+        property: "実施日",
+        date: {
+          on_or_before: formatISO(endDate),
+        },
+      })
+    }
+
+    // 種類フィルター
+    if (options?.type) {
+      if (options.type === "consultation") {
+        // 個人コンサル
+        filters.push({
+          property: "講義テーマ",
+          multi_select: {
+            contains: "個人コンサル",
+          },
+        })
+        // アーカイブではない
+        filters.push({
+          property: "アーカイブ",
+          checkbox: {
+            equals: false,
+          },
+        })
+      } else if (options.type === "regular") {
+        // 通常（個人コンサルを含まない）
+        filters.push({
+          property: "講義テーマ",
+          multi_select: {
+            does_not_contain: "個人コンサル",
+          },
+        })
+        // アーカイブではない
+        filters.push({
+          property: "アーカイブ",
+          checkbox: {
+            equals: false,
+          },
+        })
+      } else if (options.type === "archive") {
+        // アーカイブ
+        filters.push({
+          property: "アーカイブ",
+          checkbox: {
+            equals: true,
+          },
+        })
+      }
+    } else {
+      // オプションがない場合は既存の挙動（完了していないもの全て）
+      // ただし、アーカイブフラグについては既存ロジックではJS側でフィルタリングしていたが
+      // ここでは「完了していない」だけを条件にする（既存通り）
+      filters.push({
+        property: "完了",
+        checkbox: {
+          equals: false,
+        },
+      })
+    }
+
+    // 重複するフィルターを除去（完了フラグなど）
+    const uniqueFilters = filters.filter(
+      (filter, index, self) => index === self.findIndex((t) => JSON.stringify(t) === JSON.stringify(filter)),
+    )
+
+    const queryFilter =
+      uniqueFilters.length > 0
+        ? {
+          and: uniqueFilters,
+        }
+        : undefined
+
     // API呼び出しを試行
     let response
     try {
       response = await notionClient.databases.query({
         database_id: SCHEDULES_DB_ID,
-        filter: {
-          property: "完了",
-          checkbox: {
-            equals: false,
-          },
-        },
+        filter: queryFilter,
         sorts: [
           {
             property: "実施日",
@@ -575,12 +676,7 @@ export async function getSchedules(): Promise<{
 
         response = await notionClient.databases.query({
           database_id: SCHEDULES_DB_ID,
-          filter: {
-            property: "完了",
-            checkbox: {
-              equals: false,
-            },
-          },
+          filter: queryFilter,
           sorts: [
             {
               property: "実施日",
